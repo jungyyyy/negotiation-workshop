@@ -222,7 +222,11 @@ function Chat({
     }
   };
 
-  const count = pr.messages.length + (pending ? 2 : 0);
+  // While a reply streams, the polled state catches up in two steps: first the user's
+  // message, then the assistant's. Show the local echo only for what is not stored yet.
+  const storedHasUser = !!pending && pr.messages.some((m) => m.role === "user" && m.content === pending.user);
+  const storedHasReply = storedHasUser && pr.messages[pr.messages.length - 1]?.role === "assistant";
+  const count = pr.messages.length + (pending ? (storedHasUser ? 0 : 1) + (storedHasReply ? 0 : 1) : 0);
   const over = count >= SOFT_LIMIT;
 
   return (
@@ -244,16 +248,20 @@ function Chat({
               <div className="whitespace-pre-wrap leading-snug">{m.content}</div>
             </li>
           ))}
-          {pending && !pr.messages.some((m) => m.role === "user" && m.content === pending.user && pr.messages[pr.messages.length - 1]?.role === "assistant") ? (
+          {pending ? (
             <>
-              <li className="max-w-[85%] self-end rounded-2xl bg-accent text-accent-fg px-3 py-2 opacity-90">
-                <div className="text-[10px] uppercase tracking-wide text-accent-fg/80">{myName}</div>
-                <div className="whitespace-pre-wrap leading-snug">{pending.user}</div>
-              </li>
-              <li className="max-w-[85%] self-start rounded-2xl bg-soft px-3 py-2">
-                <div className="text-[10px] uppercase tracking-wide text-muted">{aiName}</div>
-                <div className="whitespace-pre-wrap leading-snug">{pending.ai.split("\n⚠ ")[0] || <span className="text-muted">…</span>}</div>
-              </li>
+              {!storedHasUser ? (
+                <li className="max-w-[85%] self-end rounded-2xl bg-accent text-accent-fg px-3 py-2 opacity-90">
+                  <div className="text-[10px] uppercase tracking-wide text-accent-fg/80">{myName}</div>
+                  <div className="whitespace-pre-wrap leading-snug">{pending.user}</div>
+                </li>
+              ) : null}
+              {!storedHasReply ? (
+                <li className="max-w-[85%] self-start rounded-2xl bg-soft px-3 py-2">
+                  <div className="text-[10px] uppercase tracking-wide text-muted">{aiName}</div>
+                  <div className="whitespace-pre-wrap leading-snug">{pending.ai.split("\n⚠ ")[0] || <span className="text-muted">…</span>}</div>
+                </li>
+              ) : null}
             </>
           ) : null}
           <div ref={bottom} />
