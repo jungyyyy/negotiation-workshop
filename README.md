@@ -99,7 +99,7 @@ Set these in Vercel (Project → Settings → Environment Variables) and in
 | `SUPABASE_ANON_KEY` | Supabase → Settings → API → anon public key. Used on the server for Auth. |
 | `SUPABASE_SERVICE_KEY` | Supabase → Settings → API → service_role key. Server only; never exposed to the browser. Shared project: it can also read the other app's table. |
 | `SUPABASE_TABLE` | Table holding the workshop session. Default `workshop_sessions`. |
-| `ALLOWED_EMAILS` | Comma-separated: `jung@example.com,rehan@example.com,harry@example.com` |
+| `ALLOWED_EMAILS` | Comma-separated. The local part of each address must start with the participant id (`jung…`, `rehan…`, `harry…`), e.g. `jung@example.com,rehan@example.com,harry@example.com` |
 
 ## Deploy to Vercel
 
