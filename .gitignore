@@ -7,8 +7,9 @@ out/
 next-env.d.ts
 *.tsbuildinfo
 
-# env files
+# env files (the example is committed)
 .env*
+!.env.example
 
 # os
 .DS_Store
