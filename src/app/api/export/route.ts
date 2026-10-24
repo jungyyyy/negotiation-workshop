@@ -1,11 +1,13 @@
 import { exportMarkdown } from "@/lib/export";
 import { getSession } from "@/lib/store";
+import { authorized, unauthorized } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
+  if (!authorized(req)) return unauthorized();
   const format = new URL(req.url).searchParams.get("format") ?? "md";
-  const s = getSession();
+  const s = await getSession();
   const stamp = new Date().toISOString().slice(0, 10);
   if (format === "json") {
     return new Response(JSON.stringify(s, null, 2), {

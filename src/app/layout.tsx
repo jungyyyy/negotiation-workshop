@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { PasscodeGate } from "@/components/PasscodeGate";
 
 export const metadata: Metadata = {
   title: "Myda Negotiation Workshop",
@@ -19,7 +20,9 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-dvh flex flex-col">{children}</body>
+      <body className="min-h-dvh flex flex-col">
+        <PasscodeGate>{children}</PasscodeGate>
+      </body>
     </html>
   );
 }

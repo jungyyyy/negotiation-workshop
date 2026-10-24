@@ -77,7 +77,7 @@ export function RoundScreen({
           {role === "observer" ? (
             <ObserverPanel scenario={scenario} round={round} session={session} act={act} cleared={cleared} />
           ) : role ? (
-            <>
+            <div className="grid gap-3 md:grid-cols-2 md:items-start">
               <RoleSheet scenario={scenario} role={role} locked={!cleared} defaultOpen={round.status !== "negotiating"} />
               {scenario.requiresPrep && cleared && round.status === "prep" ? (
                 <PrepForm scenario={scenario} round={round} me={me} act={act} />
@@ -103,7 +103,7 @@ export function RoundScreen({
                   <p className="text-sm text-muted">Waiting for the reveal.</p>
                 </Card>
               ) : null}
-            </>
+            </div>
           ) : null}
         </>
       )}

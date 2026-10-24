@@ -27,12 +27,12 @@ export default function FacilitatorPage() {
   const sprint = sprintForBlock(block.id);
 
   return (
-    <Page className="pt-4 flex flex-col gap-4">
+    <Page className="pt-4 flex flex-col gap-4 lg:max-w-6xl">
       <div className="flex items-center justify-between text-sm text-muted">
         <span className="font-semibold text-fg">
           Facilitator{session.demo ? <span className="text-warn"> · DEMO</span> : null}
         </span>
-        <span className={live ? "text-accent" : ""}>{live ? "● live" : "○ polling"}</span>
+        <span className={live ? "text-accent" : "text-warn"}>{live ? "● synced" : "○ reconnecting"}</span>
       </div>
 
       <TimerControls session={session} act={act} />
@@ -140,7 +140,6 @@ export default function FacilitatorPage() {
       <Card className="flex flex-col gap-3">
         <Label>Tools</Label>
         <div className="flex flex-wrap gap-3">
-          <Button href="/qr">Show join QR</Button>
           <Button href="/">Join screen</Button>
           <Button href="/me">My screen</Button>
         </div>

@@ -5,64 +5,79 @@ import type { Action, Person, Session, Timer } from "./types";
 import { PEOPLE } from "./types";
 
 const ME_KEY = "nw.person";
+const PASS_KEY = "nw.passcode";
+export const PASS_HEADER = "x-passcode";
+export const UNAUTH_EVENT = "nw:unauthorized";
+const POLL_MS = 2000;
 
-/** Live session state over SSE, falling back to 2 s polling. */
+export function getPasscode(): string {
+  try {
+    return localStorage.getItem(PASS_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+export function setPasscode(v: string) {
+  try {
+    if (v) localStorage.setItem(PASS_KEY, v);
+    else localStorage.removeItem(PASS_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** fetch with the passcode header; a 401 locks the app again. */
+export async function apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  const pass = getPasscode();
+  if (pass) headers.set(PASS_HEADER, pass);
+  const r = await fetch(url, { ...init, headers, cache: "no-store" });
+  if (r.status === 401) window.dispatchEvent(new Event(UNAUTH_EVENT));
+  return r;
+}
+
+/** Shared session state, polled every two seconds. */
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null);
   const [live, setLive] = useState(false);
 
   useEffect(() => {
-    let es: EventSource | null = null;
-    let poll: ReturnType<typeof setInterval> | null = null;
-    let retry: ReturnType<typeof setTimeout> | null = null;
     let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
 
-    const fetchOnce = async () => {
+    const tick = async () => {
       try {
-        const r = await fetch("/api/session", { cache: "no-store" });
-        if (r.ok) setSession(await r.json());
+        const r = await apiFetch("/api/session");
+        if (r.ok) {
+          setSession(await r.json());
+          setLive(true);
+        } else if (r.status !== 401) {
+          setLive(false);
+        }
       } catch {
-        /* offline */
+        setLive(false);
+      }
+      if (!stopped) timer = setTimeout(tick, document.hidden ? POLL_MS * 3 : POLL_MS);
+    };
+    void tick();
+
+    const onVisible = () => {
+      if (!document.hidden && !stopped) {
+        if (timer) clearTimeout(timer);
+        void tick();
       }
     };
-
-    const startPoll = () => {
-      if (poll) return;
-      void fetchOnce();
-      poll = setInterval(fetchOnce, 2000);
-    };
-
-    const connect = () => {
-      if (stopped) return;
-      es = new EventSource("/api/events");
-      es.onopen = () => {
-        setLive(true);
-        if (poll) {
-          clearInterval(poll);
-          poll = null;
-        }
-      };
-      es.onmessage = (e) => setSession(JSON.parse(e.data));
-      es.onerror = () => {
-        setLive(false);
-        es?.close();
-        es = null;
-        startPoll();
-        retry = setTimeout(connect, 3000);
-      };
-    };
-
-    connect();
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       stopped = true;
-      es?.close();
-      if (poll) clearInterval(poll);
-      if (retry) clearTimeout(retry);
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 
   const act = useCallback(async (action: Action) => {
-    const r = await fetch("/api/session/action", {
+    const r = await apiFetch("/api/session/action", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(action),
@@ -126,13 +141,14 @@ export function fmtMs(ms: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export function useJoinInfo() {
-  const [info, setInfo] = useState<{ url: string; qr: string } | null>(null);
-  useEffect(() => {
-    fetch("/api/join-info", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => d && setInfo(d))
-      .catch(() => {});
-  }, []);
-  return info;
+/** Download an authenticated API response as a file. */
+export async function downloadFile(url: string, filename: string) {
+  const r = await apiFetch(url);
+  if (!r.ok) return;
+  const blob = await r.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }

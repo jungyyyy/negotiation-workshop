@@ -1,6 +1,5 @@
-import fs from "node:fs";
-import path from "node:path";
 import type { Action, Session, Timer } from "./types";
+import { storage } from "./storage";
 import { clampPosition, getStep, nextPosition, prevPosition } from "./agenda";
 import { getSprint, MAX_ATTEMPTS, PASS_MARK } from "./sprints";
 import { getScenario, ROLES } from "./scenarios";
@@ -8,20 +7,6 @@ import { computeScores } from "./scoring";
 import { getDrillSet } from "./drills";
 import { demoFill, demoPrep, seedDemo } from "./demo";
 import type { Round } from "./types";
-
-const DATA_DIR = path.join(process.cwd(), "data");
-const FILE = path.join(DATA_DIR, "session.json");
-
-type Listener = (s: Session) => void;
-
-interface Store {
-  session: Session;
-  listeners: Set<Listener>;
-  saveTimer: NodeJS.Timeout | null;
-}
-
-// Survive HMR module reloads in dev by hanging the store off globalThis.
-const g = globalThis as unknown as { __nwStore?: Store };
 
 function findRound(s: Session, id: string): Round | undefined {
   return s.rounds.find((r) => r.id === id);
@@ -94,58 +79,32 @@ function migrate(s: Session): Session {
   return s;
 }
 
-function load(): Session {
-  try {
-    const raw = fs.readFileSync(FILE, "utf8");
-    const s = JSON.parse(raw) as Session;
-    if (s && s.version === 1) return migrate(s);
-  } catch {
-    /* no file yet */
+const MAX_RETRIES = 6;
+
+/** Current state; creates the session on first use. */
+export async function getSession(): Promise<Session> {
+  const loaded = await storage().load();
+  if (loaded) return migrate(loaded.state);
+  const fresh = newSession();
+  await storage().save(fresh, 0);
+  return fresh;
+}
+
+/**
+ * Apply an action. Reads the latest state, reduces, and writes back with an
+ * optimistic-concurrency check; retries when another device wrote in between.
+ */
+export async function dispatch(action: Action): Promise<Session> {
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const loaded = await storage().load();
+    const prev = loaded ? migrate(loaded.state) : newSession();
+    const rev = loaded?.rev ?? 0;
+    const next = reduce(prev, action);
+    next.updatedAt = Date.now();
+    if (await storage().save(next, rev)) return next;
+    await new Promise((r) => setTimeout(r, 40 + Math.random() * 120));
   }
-  return newSession();
-}
-
-function store(): Store {
-  if (!g.__nwStore) {
-    g.__nwStore = { session: load(), listeners: new Set(), saveTimer: null };
-  }
-  return g.__nwStore;
-}
-
-export function getSession(): Session {
-  return store().session;
-}
-
-export function subscribe(fn: Listener): () => void {
-  const st = store();
-  st.listeners.add(fn);
-  return () => st.listeners.delete(fn);
-}
-
-function persist() {
-  const st = store();
-  if (st.saveTimer) clearTimeout(st.saveTimer);
-  st.saveTimer = setTimeout(() => {
-    st.saveTimer = null;
-    try {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-      const tmp = FILE + ".tmp";
-      fs.writeFileSync(tmp, JSON.stringify(st.session, null, 2));
-      fs.renameSync(tmp, FILE);
-    } catch (e) {
-      console.error("Could not save data/session.json", e);
-    }
-  }, 250);
-}
-
-export function dispatch(action: Action): Session {
-  const st = store();
-  const next = reduce(st.session, action);
-  next.updatedAt = Date.now();
-  st.session = next;
-  persist();
-  for (const l of st.listeners) l(next);
-  return next;
+  throw new Error("Could not save: too many concurrent writes");
 }
 
 function reduce(prev: Session, a: Action): Session {

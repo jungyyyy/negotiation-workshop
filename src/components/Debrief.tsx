@@ -6,6 +6,7 @@ import { actualRanks, capstoneShare, COMMON_MISTAKES, mistakesFor, rubricTotals 
 import { getScenario } from "@/lib/scenarios";
 import { PEOPLE, personName, type Action, type Person, type Session } from "@/lib/types";
 import { Button, Card, Label } from "./ui";
+import { downloadFile } from "@/lib/client";
 import { DealSummary } from "./round/DealForm";
 import { ExperimentReveal } from "./Experiment";
 
@@ -306,12 +307,12 @@ export function ExportCard() {
       <Label>Export</Label>
       <p className="text-sm text-muted mt-1">Every round, prep form, score, drill result and personal list.</p>
       <div className="mt-3 grid grid-cols-2 gap-3">
-        <a href="/api/export?format=md" download className="inline-flex items-center justify-center min-h-14 rounded-xl bg-accent text-accent-fg font-semibold">
+        <Button variant="primary" size="lg" onClick={() => downloadFile("/api/export?format=md", `negotiation-workshop-${new Date().toISOString().slice(0, 10)}.md`)}>
           Markdown
-        </a>
-        <a href="/api/export?format=json" download className="inline-flex items-center justify-center min-h-14 rounded-xl border border-line font-semibold">
+        </Button>
+        <Button size="lg" onClick={() => downloadFile("/api/export?format=json", `negotiation-workshop-${new Date().toISOString().slice(0, 10)}.json`)}>
           JSON
-        </a>
+        </Button>
       </div>
     </Card>
   );

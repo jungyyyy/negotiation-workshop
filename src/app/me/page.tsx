@@ -46,7 +46,7 @@ export default function MePage() {
           <span>
             {personName(me)} · Day {block.day}
           </span>
-          <span className={live ? "text-accent" : ""}>{live ? "● live" : "○ polling"}</span>
+          <span className={live ? "text-accent" : "text-warn"}>{live ? "● synced" : "○ reconnecting"}</span>
         </div>
 
         {!step.roundId ? (

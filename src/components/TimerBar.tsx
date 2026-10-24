@@ -36,7 +36,7 @@ export function TimerBar({ session, size = "md" }: { session: Session; size?: "m
         done ? "bg-warn text-white" : "bg-bg/90"
       }`}
     >
-      <div className="max-w-md md:max-w-3xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
+      <div className="max-w-md md:max-w-3xl lg:max-w-4xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <div className={`text-xs font-semibold uppercase tracking-wide ${done ? "text-white/80" : "text-muted"}`}>
             {session.demo ? <span className="text-warn">DEMO · </span> : null}

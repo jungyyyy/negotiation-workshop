@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 
 export function Page({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <main className={`flex-1 w-full max-w-md md:max-w-3xl mx-auto px-4 pb-8 safe-bottom ${className}`}>
+    <main className={`flex-1 w-full max-w-md md:max-w-3xl lg:max-w-4xl mx-auto px-4 pb-8 safe-bottom ${className}`}>
       {children}
     </main>
   );
