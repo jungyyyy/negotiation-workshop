@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Session } from "./types";
+import { supabaseUrlProblem } from "./config";
 
 /**
  * Where the single workshop session lives.
@@ -95,7 +96,11 @@ export function storage(): Storage {
   if (!g.__nwStorage) {
     const url = process.env.SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_KEY;
-    if (url && key) g.__nwStorage = new SupabaseStorage(url, key);
+    if (url && key) {
+      const problem = supabaseUrlProblem(url);
+      if (problem) throw new Error(problem);
+      g.__nwStorage = new SupabaseStorage(url, key);
+    }
     else {
       if (process.env.VERCEL) console.warn("SUPABASE_URL / SUPABASE_SERVICE_KEY not set; state will not persist on Vercel.");
       g.__nwStorage = new FileStorage();

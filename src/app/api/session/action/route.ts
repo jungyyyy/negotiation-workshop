@@ -4,9 +4,11 @@ import { dispatch, getSession } from "@/lib/store";
 import type { Action } from "@/lib/types";
 import { buildView } from "@/lib/view";
 
+import { withJson } from "@/lib/http";
+
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request) {
+export const POST = withJson(async (req: Request) => {
   const user = await currentUser();
   if (!user) return unauthorized();
   let action: Action;
@@ -22,4 +24,4 @@ export async function POST(req: Request) {
   if (denied) return forbidden(denied);
   const next = await dispatch(action);
   return Response.json(buildView(next, user.person, user.email), { headers: { "Cache-Control": "no-store" } });
-}
+});

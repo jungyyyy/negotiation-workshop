@@ -2,9 +2,11 @@ import { exportMarkdown } from "@/lib/export";
 import { getSession } from "@/lib/store";
 import { currentUser, unauthorized } from "@/lib/serverAuth";
 
+import { withJson } from "@/lib/http";
+
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+export const GET = withJson(async (req: Request) => {
   if (!(await currentUser())) return unauthorized();
   const format = new URL(req.url).searchParams.get("format") ?? "md";
   const s = await getSession();
@@ -25,4 +27,4 @@ export async function GET(req: Request) {
       "Cache-Control": "no-store",
     },
   });
-}
+});

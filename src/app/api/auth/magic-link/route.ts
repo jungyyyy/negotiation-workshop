@@ -1,10 +1,13 @@
 import { isAllowed, personForEmail } from "@/lib/serverAuth";
 import { supabaseAuthClient } from "@/lib/supabaseServer";
 
+import { withJson } from "@/lib/http";
+import { explainSupabaseError } from "@/lib/config";
+
 export const dynamic = "force-dynamic";
 
 /** Sends a magic link, but only to allowlisted addresses. */
-export async function POST(req: Request) {
+export const POST = withJson(async (req: Request) => {
   let email = "";
   try {
     email = String((await req.json()).email ?? "").trim().toLowerCase();
@@ -22,6 +25,6 @@ export async function POST(req: Request) {
     email,
     options: { emailRedirectTo: `${origin}/auth/callback`, shouldCreateUser: true },
   });
-  if (error) return Response.json({ error: error.message }, { status: 500 });
+  if (error) return Response.json({ error: explainSupabaseError(error.message) }, { status: 500 });
   return Response.json({ ok: true });
-}
+});

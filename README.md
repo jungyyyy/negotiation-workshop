@@ -118,6 +118,28 @@ To remove someone's access, take their address out of `ALLOWED_EMAILS` and
 redeploy; their next request is refused. "Start demo session" in the facilitator tools seeds a session that
 can be clicked through in a few minutes.
 
+## Troubleshooting
+
+Open `https://<your-domain>/api/health`. It reports, without revealing any
+secret, whether each variable is set, whether `SUPABASE_URL` is the project API
+URL, whether the Auth endpoint answers, and whether the workshop table is
+readable.
+
+- **"Unexpected token '<' … is not valid JSON"** on sign-in: `SUPABASE_URL`
+  is pointing at a web page rather than the API. It must be the Project URL
+  from Supabase → Settings → API, of the form `https://<project-ref>.supabase.co`,
+  with no path. The dashboard address (`https://supabase.com/dashboard/...`)
+  is wrong.
+- **"Invalid API key"**: the anon or service_role key is wrong or swapped.
+- **"relation … does not exist"** in the table check: run the SQL above, or
+  set `SUPABASE_TABLE` to the table you created.
+- **No email arrives**: the address is not in `ALLOWED_EMAILS` (the app then
+  says "This workshop is private"), or the Email provider is disabled in
+  Supabase, or the redirect URL is not in the allowed list.
+
+After changing a variable in Vercel, redeploy; variables are read at request
+time but the function instances must restart.
+
 ## The books
 
 The reading sprints and quizzes refer to page numbers in the two PDFs. Put

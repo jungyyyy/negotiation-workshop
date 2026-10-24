@@ -66,7 +66,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
                     body: JSON.stringify({ email }),
                   });
                   if (r.ok) setState("sent");
-                  else setError((await r.json().catch(() => ({}))).error ?? "Could not send the link");
+                  else {
+                    const body = await r.json().catch(() => null);
+                    setError(body?.error ?? `Could not send the link (HTTP ${r.status}). Open /api/health to check the configuration.`);
+                  }
                 } finally {
                   setBusy(false);
                 }

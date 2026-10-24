@@ -2,13 +2,16 @@ import { NextResponse } from "next/server";
 import { isAllowed } from "@/lib/serverAuth";
 import { supabaseAuthClient } from "@/lib/supabaseServer";
 
+import { withJson } from "@/lib/http";
+import { explainSupabaseError } from "@/lib/config";
+
 export const dynamic = "force-dynamic";
 
 /**
  * Lands here from the email. Supports both link styles Supabase can send:
  * PKCE (?code=…) and token hash (?token_hash=…&type=email).
  */
-export async function GET(req: Request) {
+export const GET = withJson(async (req: Request) => {
   const url = new URL(req.url);
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");
@@ -19,11 +22,11 @@ export async function GET(req: Request) {
   let email: string | undefined;
   if (code) {
     const { data, error } = await client.auth.exchangeCodeForSession(code);
-    if (error) return fail(error.message);
+    if (error) return fail(explainSupabaseError(error.message));
     email = data.user?.email ?? undefined;
   } else if (tokenHash) {
     const { data, error } = await client.auth.verifyOtp({ token_hash: tokenHash, type: "email" });
-    if (error) return fail(error.message);
+    if (error) return fail(explainSupabaseError(error.message));
     email = data.user?.email ?? undefined;
   } else {
     return fail("Missing code");
@@ -33,4 +36,4 @@ export async function GET(req: Request) {
     return fail("This workshop is private");
   }
   return NextResponse.redirect(`${url.origin}/`);
-}
+});
