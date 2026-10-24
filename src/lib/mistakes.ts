@@ -1,5 +1,4 @@
 import { RUBRIC } from "./rubric";
-import { getScenario } from "./scenarios";
 import { PEOPLE, type Person, type Session } from "./types";
 
 /** The seven common mistakes from the claiming-value chapter, in our words. */
@@ -79,8 +78,6 @@ export function capstoneShare(session: Session): Partial<Record<Person, number>>
   const r = session.rounds.find((x) => x.id === "R5");
   const sc = r?.scores;
   if (!r || !sc || sc.kind !== "points" || sc.seller == null || sc.buyer == null) return {};
-  const scenario = getScenario(r.scenarioId);
-  if (!scenario?.points) return {};
   const sGain = Math.max(0, sc.seller - sc.sellerBatna);
   const bGain = Math.max(0, sc.buyer - sc.buyerBatna);
   const total = sGain + bGain;

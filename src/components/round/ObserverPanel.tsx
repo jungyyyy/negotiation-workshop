@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { fmtMs } from "@/lib/client";
 import type { Scenario } from "@/lib/scenarios";
-import { personName, type Action, type Round, type Session } from "@/lib/types";
+import { personName, type Action, type Round, type RoundAccess, type Session } from "@/lib/types";
 import { Button, Card, Label } from "../ui";
 import { TimerControls } from "../TimerControls";
 import { DealForm, DealSummary } from "./DealForm";
@@ -15,13 +15,13 @@ export function ObserverPanel({
   round,
   session,
   act,
-  cleared,
+  access,
 }: {
   scenario: Scenario;
   round: Round;
   session: Session;
   act: (a: Action) => void;
-  cleared: boolean;
+  access: RoundAccess;
 }) {
   const seller = round.roles.seller;
   const buyer = round.roles.buyer;
@@ -105,15 +105,15 @@ export function ObserverPanel({
 
       {round.status !== "negotiating" ? (
         <div className="flex flex-col gap-2">
-          <RoleSheet scenario={scenario} role="seller" defaultOpen={false} locked={!cleared} />
-          <RoleSheet scenario={scenario} role="buyer" defaultOpen={false} locked={!cleared} />
+          <RoleSheet scenario={scenario} role="seller" defaultOpen={false} sheet={access.sheets.seller} points={access.points} />
+          <RoleSheet scenario={scenario} role="buyer" defaultOpen={false} sheet={access.sheets.buyer} points={access.points} />
         </div>
       ) : (
         <details className="rounded-2xl border border-line bg-card">
           <summary className="list-none cursor-pointer min-h-12 px-4 py-3 font-semibold">Both sheets</summary>
           <div className="px-2 pb-3 flex flex-col gap-2">
-            <RoleSheet scenario={scenario} role="seller" defaultOpen={false} locked={!cleared} />
-            <RoleSheet scenario={scenario} role="buyer" defaultOpen={false} locked={!cleared} />
+            <RoleSheet scenario={scenario} role="seller" defaultOpen={false} sheet={access.sheets.seller} points={access.points} />
+            <RoleSheet scenario={scenario} role="buyer" defaultOpen={false} sheet={access.sheets.buyer} points={access.points} />
           </div>
         </details>
       )}

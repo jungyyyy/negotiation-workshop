@@ -56,14 +56,6 @@ export interface Scenario {
   sellerParty: string;
   buyerParty: string;
   publicBrief: string[];
-  sellerSheet: string[];
-  buyerSheet: string[];
-  hidden: string[];
-  /** The real BATNAs and reservation values, shown next to the prep forms at reveal. */
-  truth?: Truth;
-  /** Single-issue rounds: the two reservation values that bound the ZOPA. */
-  single?: { sellerRv: number; buyerRv: number; unit: string };
-  points?: PointsTable;
   prepLabels?: PrepLabels;
   dealFields: DealField[];
   debrief: string[];
@@ -77,6 +69,7 @@ const CASE_STUDY = [
   { value: "named", label: "Named logo + case study" },
 ];
 
+/** Public parts only. Confidential parts live in scenarioSecrets.ts and are served per user. */
 export const SCENARIOS: Scenario[] = [
   {
     id: "R1",
@@ -92,31 +85,6 @@ export const SCENARIOS: Scenario[] = [
       "The only open issue is the monthly pilot fee. Comparable tools on the market cost €800–2,000 per month for this seat count.",
       "All money in EUR.",
     ],
-    sellerSheet: [
-      "You sell for Myda.",
-      "Your BATNA is a pilot with a smaller Berlin agency that has offered €900/month. You think you could push them to €1,000–1,100.",
-      "Your reservation value is €1,050/month. Below that, walk away and take Berlin.",
-      "You believe Hollowbrook's limit is around €1,500/month.",
-      "Myda's cash is tight, and a signed pilot this week matters for the EXIST report. Hollowbrook does not know that, and you do not have to tell them.",
-    ],
-    buyerSheet: [
-      "You buy for Hollowbrook Social.",
-      "You currently pay a freelance creator coach €2,400/month, and he leaves in four weeks.",
-      "Your BATNA is another freelancer at about €2,000/month, but with a six-week delay you cannot afford before Q4.",
-      "Your director has approved up to €2,200/month for a tool that starts within two weeks. That is your reservation value.",
-      "You would like to pay as little as possible. You will mention that \"there are cheaper tools\". That is true, but they do not do 1:1 feedback.",
-    ],
-    hidden: [
-      "ZOPA: €1,050 (Myda's reservation value) to €2,200 (Hollowbrook's approved limit).",
-      "Hollowbrook's real situation: a €2,400/month coach leaving in four weeks, a slower and still expensive fallback, and a director already signed off at €2,200. Every one of those facts was discoverable with a question about their current setup and timeline.",
-    ],
-    single: { sellerRv: 1050, buyerRv: 2200, unit: "€/month" },
-    truth: {
-      sellerBatna: "Berlin agency at €900/month, probably pushable to €1,000–1,100",
-      sellerReservation: "€1,050/month",
-      buyerBatna: "Another freelancer at about €2,000/month, with a six-week delay",
-      buyerReservation: "€2,200/month (director's approval)",
-    },
     dealFields: [{ key: "price", label: "Agreed monthly pilot fee", type: "number", unit: "€/month", required: true, min: 0, step: 10 }],
     debrief: [
       "Who made the first offer, and did they have enough information to make it?",
@@ -139,68 +107,6 @@ export const SCENARIOS: Scenario[] = [
       "Hollowbrook wants to move from the pilot to an annual deal. Four issues are open: price per seat per month, contract term, case-study rights, and support tier.",
       "Both sides have a private points table and must negotiate all four issues at once. Points are confidential. Your prep form must compute a package reservation value from your BATNA.",
     ],
-    sellerSheet: [
-      "You sell for Myda. Your points are in the table below.",
-      "Your BATNA is the Berlin agency deal, worth 600 points to you. Any package below 600 points is worse than walking away.",
-    ],
-    buyerSheet: [
-      "You buy for Hollowbrook. Your points are in the table below.",
-      "Your BATNA is hiring a freelancer, worth 500 points to you. Any package below 500 points is worse than walking away.",
-    ],
-    hidden: [
-      "The efficient trades: weekly live call (Hollowbrook +500, Myda −200), 12 months (Myda +400, Hollowbrook −100) and the named case study (Myda +400, Hollowbrook −100). Price is the issue where you claim value; the other three are where you create it.",
-      "Splitting the difference on an issue where one side cares far more than the other burns points for both.",
-      "Extension, the conversion dispute: Myda projects a 15% uplift, Hollowbrook doubts it. A clause such as 'rebate of one month's fees if measured uplift is under 5%, bonus of one month if over 15%' costs nothing to argue about. If Myda believes its number, it expects to collect the bonus; if Hollowbrook believes its number, it expects the rebate. Both expect to win, so both should sign, and a side that refuses has told you what it really believes.",
-    ],
-    points: {
-      sellerBatna: 600,
-      buyerBatna: 500,
-      issues: [
-        {
-          key: "price",
-          label: "Price per seat per month",
-          options: [
-            { value: "60", label: "€60", seller: 0, buyer: 800 },
-            { value: "80", label: "€80", seller: 200, buyer: 600 },
-            { value: "100", label: "€100", seller: 400, buyer: 400 },
-            { value: "120", label: "€120", seller: 600, buyer: 200 },
-            { value: "140", label: "€140", seller: 800, buyer: 0 },
-          ],
-        },
-        {
-          key: "term",
-          label: "Contract term",
-          options: [
-            { value: "3", label: "3 months", seller: 0, buyer: 200 },
-            { value: "6", label: "6 months", seller: 150, buyer: 150 },
-            { value: "12", label: "12 months", seller: 400, buyer: 100 },
-          ],
-        },
-        {
-          key: "caseStudy",
-          label: "Case study",
-          options: [
-            { value: "none", label: "None", seller: 0, buyer: 100 },
-            { value: "anon", label: "Anonymous quote", seller: 100, buyer: 80 },
-            { value: "named", label: "Named logo + case study", seller: 400, buyer: 0 },
-          ],
-        },
-        {
-          key: "support",
-          label: "Support",
-          options: [
-            { value: "email", label: "Email, 48h", seller: 200, buyer: 0 },
-            { value: "weekly", label: "Weekly live call", seller: 0, buyer: 500 },
-          ],
-        },
-      ],
-    },
-    truth: {
-      sellerBatna: "The Berlin agency deal",
-      sellerReservation: "600 points",
-      buyerBatna: "Hiring a freelancer",
-      buyerReservation: "500 points",
-    },
     prepLabels: {
       reservation: "Package reservation value (points) — the value of your BATNA",
       theirReservation: "Their package reservation value (your estimate, in their points)",
@@ -236,27 +142,6 @@ export const SCENARIOS: Scenario[] = [
       "Veltra insists on one clause: Myda may not work with any other skincare brand on TikTok Shop.",
       "Myda cannot accept this. Skincare is a third of its pipeline.",
     ],
-    sellerSheet: [
-      "You sell for Myda.",
-      "Your instinct will be to buy the clause out with discounts and extras. That is the trap.",
-      "Your real instruction: find out why Veltra wants this clause. Do not offer anything until you know.",
-    ],
-    buyerSheet: [
-      "You buy for Veltra.",
-      "Your founder's former co-founder left and started a competing brand, \"Lumea\". Your real fear is that Myda's creators and feedback data would make Lumea's content better.",
-      "You are not worried about other skincare brands at all.",
-      "You will not volunteer this. Say \"it's a matter of principle\" and \"that's our policy\" until someone asks a direct why-question or asks what specifically worries you. If they ask, tell them.",
-    ],
-    hidden: [
-      "The solution needs no concession: a clause naming Lumea only, plus a promise to keep Veltra's data separate.",
-      "The clause was information about an interest (fear of one specific competitor), not a demand to be bought off.",
-    ],
-    truth: {
-      sellerBatna: "Lose Veltra but keep a third of the pipeline open",
-      sellerReservation: "No blanket skincare exclusivity, whatever the sweetener",
-      buyerBatna: "Another tool, or none; the real need is protection from Lumea",
-      buyerReservation: "A clause that keeps Myda's creators and data away from Lumea",
-    },
     prepLabels: {
       batna: "Your BATNA if Veltra walks (and what the clause would cost you)",
       reservation: "What you will not accept, and what you could accept",
@@ -290,20 +175,6 @@ export const SCENARIOS: Scenario[] = [
     publicBrief: [
       "The Veltra deal is done. At the very end, the buyer adds one demand: a penalty of €500 for every feedback delivery later than 48 hours.",
     ],
-    sellerSheet: [
-      "You sell for Myda.",
-      "Treat the demand as information. What does it tell you about what Veltra cares about?",
-      "A fact you know: Myda's median delivery time is 18 hours.",
-    ],
-    buyerSheet: [
-      "You buy for Veltra.",
-      "Insist on the €500 penalty per late delivery (over 48 hours). Your content calendar depends on fast turnaround, and a slow tool is useless to you.",
-      "You have no instruction to refuse other ideas, but do not propose any yourself.",
-    ],
-    hidden: [
-      "The best answer: accept a higher penalty than asked, and ask for a bonus for deliveries under 24 hours. Myda's median delivery is 18 hours, so the penalty costs almost nothing and the bonus pays.",
-      "The demand revealed Veltra's interest in speed. Speed is cheap for Myda. Interests that differ in cost are where value is created.",
-    ],
     dealFields: [
       { key: "penalty", label: "Penalty agreed per late delivery", type: "number", unit: "€", min: 0, step: 50, required: true },
       { key: "bonus", label: "Bonus for fast delivery agreed?", type: "boolean", required: true },
@@ -329,81 +200,6 @@ export const SCENARIOS: Scenario[] = [
       "Five issues: price per seat per month (€80–160 in steps of €20), term (6, 12 or 24 months), payment timing (monthly or annual upfront), case-study rights (none, anonymous, named), and onboarding workshops (none, one remote, two on-site).",
       "Each side has a private points table and a BATNA. Negotiate all five issues as a package.",
     ],
-    sellerSheet: [
-      "You sell for Myda. Your points are in the table below.",
-      "Cash timing matters more to you than price: annual upfront payment is worth a lot of points.",
-      "You can run on-site workshops cheaply because Hamburg is near, so the two on-site workshops cost you very little.",
-      "Your BATNA is a slower pilot with another DACH brand, worth 700 points.",
-    ],
-    buyerSheet: [
-      "You buy for Nordlicht. Your points are in the table below.",
-      "Clipcoach's offer is real, but it is €90 per seat with no 1:1 feedback, only group webinars, and your head of content hates it. You plan to say: \"Clipcoach is at €90 and does everything you do.\"",
-      "Hidden budget deadline: money unspent by 31 December is lost. That makes annual upfront payment attractive to you, not costly. Do not volunteer this.",
-      "Your BATNA is Clipcoach, worth 650 points.",
-    ],
-    hidden: [
-      "The bluff: Clipcoach does not do what Myda does, and Nordlicht's head of content hates it. Any question about what Clipcoach actually delivers, or who evaluated it, would have exposed that.",
-      "The budget deadline: Nordlicht preferred annual upfront payment too. Both sides wanted the same thing on that issue. Did anyone 'compromise' on it anyway?",
-      "Efficient trades: annual upfront (both gain), two on-site workshops (Nordlicht +500, Myda −100), named case study (Myda +400, Nordlicht −150), 24 months (Myda +400, Nordlicht −200).",
-    ],
-    points: {
-      sellerBatna: 700,
-      buyerBatna: 650,
-      issues: [
-        {
-          key: "price",
-          label: "Price per seat per month",
-          options: [
-            { value: "80", label: "€80", seller: 0, buyer: 600 },
-            { value: "100", label: "€100", seller: 150, buyer: 450 },
-            { value: "120", label: "€120", seller: 300, buyer: 300 },
-            { value: "140", label: "€140", seller: 450, buyer: 150 },
-            { value: "160", label: "€160", seller: 600, buyer: 0 },
-          ],
-        },
-        {
-          key: "term",
-          label: "Term",
-          options: [
-            { value: "6", label: "6 months", seller: 0, buyer: 200 },
-            { value: "12", label: "12 months", seller: 150, buyer: 120 },
-            { value: "24", label: "24 months", seller: 400, buyer: 0 },
-          ],
-        },
-        {
-          key: "payment",
-          label: "Payment timing",
-          options: [
-            { value: "monthly", label: "Monthly", seller: 0, buyer: 150 },
-            { value: "upfront", label: "Annual upfront", seller: 500, buyer: 300 },
-          ],
-        },
-        {
-          key: "caseStudy",
-          label: "Case study",
-          options: [
-            { value: "none", label: "None", seller: 0, buyer: 150 },
-            { value: "anon", label: "Anonymous quote", seller: 100, buyer: 100 },
-            { value: "named", label: "Named logo + case study", seller: 400, buyer: 0 },
-          ],
-        },
-        {
-          key: "workshop",
-          label: "Onboarding workshops",
-          options: [
-            { value: "none", label: "None", seller: 100, buyer: 0 },
-            { value: "remote1", label: "One remote", seller: 60, buyer: 200 },
-            { value: "onsite2", label: "Two on-site", seller: 0, buyer: 500 },
-          ],
-        },
-      ],
-    },
-    truth: {
-      sellerBatna: "A slower pilot with another DACH brand",
-      sellerReservation: "700 points",
-      buyerBatna: "Clipcoach: €90, group webinars only, and the head of content hates it",
-      buyerReservation: "650 points",
-    },
     prepLabels: {
       reservation: "Package reservation value (points) — the value of your BATNA",
       theirReservation: "Their package reservation value (your estimate, in their points)",

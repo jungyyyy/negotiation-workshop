@@ -205,3 +205,20 @@ export const PREWORK: { title: string; detail: string }[] = [
     detail: "Invent Options for Mutual Gain",
   },
 ];
+
+/** What one signed-in participant may see of a round's confidential material. */
+export interface RoundAccess {
+  role: Role | null;
+  sheets: { seller?: string[]; buyer?: string[] };
+  /** Points table and which side(s) the viewer may see. */
+  points?: { table: import("./scenarios").PointsTable; side: "seller" | "buyer" | "both" };
+  hidden?: string[];
+  truth?: import("./scenarios").Truth;
+}
+
+/** The session as served to one participant: redacted, plus identity and access. */
+export interface View extends Session {
+  me: Person;
+  email: string;
+  access: Record<string, RoundAccess>;
+}

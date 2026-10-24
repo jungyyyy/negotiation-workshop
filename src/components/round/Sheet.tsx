@@ -106,29 +106,32 @@ export function PointsTableView({
 export function RoleSheet({
   scenario,
   role,
+  sheet,
+  points,
   defaultOpen = true,
-  locked = false,
 }: {
   scenario: Scenario;
   role: Exclude<Role, "observer">;
+  /** Served by the API only to people who may see it. */
+  sheet?: string[];
+  points?: { table: PointsTable; side: "seller" | "buyer" | "both" };
   defaultOpen?: boolean;
-  locked?: boolean;
 }) {
   const party = role === "seller" ? scenario.sellerParty : scenario.buyerParty;
-  const sheet = role === "seller" ? scenario.sellerSheet : scenario.buyerSheet;
+  const locked = !sheet;
   return (
     <Collapsible
       title={`${role === "seller" ? "Seller" : "Buyer"} sheet · ${party}`}
-      subtitle={locked ? "Locked until you pass the quiz" : "Confidential"}
+      subtitle={locked ? "Locked" : "Confidential"}
       defaultOpen={defaultOpen && !locked}
       tone={locked ? "warn" : "accent"}
     >
       {locked ? (
-        <p className="text-muted">Pass the quiz (4 of 5) and this sheet opens.</p>
+        <p className="text-muted">This sheet opens for its owner after the quiz (4 of 5), and for everyone at the reveal.</p>
       ) : (
         <>
           <Paragraphs items={sheet} />
-          {scenario.points ? <PointsTableView table={scenario.points} side={role} /> : null}
+          {points ? <PointsTableView table={points.table} side={points.side === "both" ? role : points.side} /> : null}
         </>
       )}
     </Collapsible>

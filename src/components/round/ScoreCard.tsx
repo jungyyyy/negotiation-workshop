@@ -1,7 +1,6 @@
 "use client";
 
 import type { Scenario } from "@/lib/scenarios";
-import { computeScores } from "@/lib/scoring";
 import { personName, type FrontierDeal, type Round } from "@/lib/types";
 import { Card, Label } from "../ui";
 import { Collapsible } from "./Sheet";
@@ -10,8 +9,8 @@ const pct = (x: number) => `${Math.round(x * 100)}%`;
 const eur = (n: number) => `€${n.toLocaleString("en")}`;
 
 export function ScoreCard({ scenario, round }: { scenario: Scenario; round: Round }) {
-  // Always compute from the current scenario definition; the stored copy is for export.
-  const s = computeScores(scenario, round) ?? round.scores;
+  // Scores are computed on the server at reveal, from the confidential tables.
+  const s = round.scores;
   if (!s) return null;
   const sellerName = personName(round.roles.seller);
   const buyerName = personName(round.roles.buyer);
@@ -159,17 +158,20 @@ function FrontierTable({
   sellerName: string;
   buyerName: string;
 }) {
-  const issues = scenario.points?.issues ?? [];
-  const label = (key: string, value: string) =>
-    issues.find((i) => i.key === key)?.options.find((o) => o.value === value)?.label ?? value;
+  // Option labels come from the public deal fields; the points stay on the server.
+  const issues = scenario.dealFields.filter((f) => f.type === "select");
+  const label = (key: string, value: string) => {
+    const f = issues.find((i) => i.key === key);
+    return f && f.type === "select" ? (f.options.find((o) => o.value === value)?.label ?? value) : value;
+  };
   return (
     <ul className="mt-2 flex flex-col gap-2">
       {deals.map((d, n) => (
         <li key={n} className="rounded-xl border border-line p-2 flex items-center gap-3">
           <div className="flex-1 flex flex-wrap gap-1">
-            {issues.map((i) => (
-              <span key={i.key} className="rounded-md bg-soft px-2 py-0.5 text-xs">
-                {label(i.key, d.deal[i.key])}
+            {Object.entries(d.deal).map(([k, v]) => (
+              <span key={k} className="rounded-md bg-soft px-2 py-0.5 text-xs">
+                {label(k, v)}
               </span>
             ))}
           </div>

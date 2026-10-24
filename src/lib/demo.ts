@@ -2,7 +2,7 @@ import { getStep } from "./agenda";
 import { DRILL_SETS, drillSetForStep } from "./drills";
 import { EXPERIMENTS, experimentForStep } from "./experiments";
 import { COMMON_MISTAKES } from "./mistakes";
-import { getScenario } from "./scenarios";
+import { getFullScenario } from "./scenarioSecrets";
 import { computeScores } from "./scoring";
 import { SPRINTS } from "./sprints";
 import { PEOPLE, type Deal, type Person, type PrepAnswers, type Round, type Session } from "./types";
@@ -165,7 +165,7 @@ export function demoFill(s: Session, now: number): string {
 
   if (step.roundId) {
     const r = s.rounds.find((x) => x.id === step.roundId);
-    const sc = r && getScenario(r.scenarioId);
+    const sc = r && getFullScenario(r.scenarioId);
     if (!r || !sc) return "No round.";
     if (sc.requiresPrep) demoPrep(r, now);
     if (r.status === "prep") {

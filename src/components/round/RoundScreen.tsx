@@ -1,11 +1,8 @@
 "use client";
 
 import type { Step } from "@/lib/agenda";
-import { getBlock } from "@/lib/agenda";
-import { quizCleared } from "@/lib/quiz";
-import { getScenario, roleLabel, roleOf } from "@/lib/scenarios";
-import { sprintForBlock } from "@/lib/sprints";
-import { personName, type Action, type Person, type Session } from "@/lib/types";
+import { getScenario, roleLabel } from "@/lib/scenarios";
+import { personName, type Action, type Person, type View } from "@/lib/types";
 import { Card, Label } from "../ui";
 import { ObserverPanel } from "./ObserverPanel";
 import { PrepForm } from "./PrepForm";
@@ -19,7 +16,7 @@ export function RoundScreen({
   step,
   act,
 }: {
-  session: Session;
+  session: View;
   me: Person;
   step: Step;
   act: (a: Action) => void;
@@ -33,10 +30,10 @@ export function RoundScreen({
       </Card>
     );
   }
-  const role = roleOf(round.roles, me);
-  const block = getBlock(session.block);
-  const sprint = sprintForBlock(block.id);
-  const cleared = !sprint || quizCleared(session, sprint.id, me);
+  const access = session.access[round.id] ?? { role: null, sheets: {} };
+  const role = access.role;
+  const ownSheet = role === "seller" ? access.sheets.seller : role === "buyer" ? access.sheets.buyer : undefined;
+  const cleared = !!ownSheet;
 
   return (
     <div className="flex flex-col gap-3">
@@ -57,7 +54,7 @@ export function RoundScreen({
 
       {round.status === "revealed" || step.kind === "reveal" ? (
         round.status === "revealed" ? (
-          <RevealView scenario={scenario} round={round} me={me} act={act} />
+          <RevealView scenario={scenario} round={round} me={me} act={act} access={access} />
         ) : (
           <Card>
             <p className="text-muted">Waiting for the observer or facilitator to reveal.</p>
@@ -75,10 +72,10 @@ export function RoundScreen({
           </Collapsible>
 
           {role === "observer" ? (
-            <ObserverPanel scenario={scenario} round={round} session={session} act={act} cleared={cleared} />
+            <ObserverPanel scenario={scenario} round={round} session={session} act={act} access={access} />
           ) : role ? (
             <div className="grid gap-3 md:grid-cols-2 md:items-start">
-              <RoleSheet scenario={scenario} role={role} locked={!cleared} defaultOpen={round.status !== "negotiating"} />
+              <RoleSheet scenario={scenario} role={role} sheet={ownSheet} points={access.points} defaultOpen={round.status !== "negotiating"} />
               {scenario.requiresPrep && cleared && round.status === "prep" ? (
                 <PrepForm scenario={scenario} round={round} me={me} act={act} />
               ) : null}

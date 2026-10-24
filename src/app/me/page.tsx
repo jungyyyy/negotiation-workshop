@@ -1,6 +1,6 @@
 "use client";
 
-import { useMe, useSession } from "@/lib/client";
+import { useSession } from "@/lib/client";
 import { personName } from "@/lib/types";
 import { getBlock, getStep } from "@/lib/agenda";
 import { TimerBar } from "@/components/TimerBar";
@@ -17,19 +17,11 @@ import { drillSetForStep } from "@/lib/drills";
 import { ExperimentReveal, ExperimentScreen } from "@/components/Experiment";
 import { DrillScreen } from "@/components/Drill";
 import { CrossCase, ExportCard, MistakesList, OverconfidenceReveal, RuleInput } from "@/components/Debrief";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 export default function MePage() {
   const { session, act, live } = useSession();
-  const { me, ready } = useMe();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (ready && !me) router.replace("/");
-  }, [ready, me, router]);
-
-  if (!ready || !session || !me) return <Spinner />;
+  if (!session) return <Spinner />;
+  const me = session.me;
 
   const block = getBlock(session.block);
   const step = getStep(session.block, session.step);

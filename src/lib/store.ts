@@ -2,7 +2,8 @@ import type { Action, Session, Timer } from "./types";
 import { storage } from "./storage";
 import { clampPosition, getStep, nextPosition, prevPosition } from "./agenda";
 import { getSprint, MAX_ATTEMPTS, PASS_MARK } from "./sprints";
-import { getScenario, ROLES } from "./scenarios";
+import { ROLES } from "./scenarios";
+import { getFullScenario } from "./scenarioSecrets";
 import { computeScores } from "./scoring";
 import { getDrillSet } from "./drills";
 import { demoFill, demoPrep, seedDemo } from "./demo";
@@ -17,7 +18,7 @@ function ensureRound(s: Session, block: number, step: number) {
   const st = getStep(block, step);
   const id = st.roundId;
   if (!id || findRound(s, id)) return;
-  const scenario = getScenario(id);
+  const scenario = getFullScenario(id);
   const roles = ROLES[id];
   if (!scenario || !roles) return;
   const round: Round = {
@@ -214,7 +215,7 @@ function reduce(prev: Session, a: Action): Session {
     }
     case "round.start": {
       const r = findRound(s, a.roundId);
-      const sc = r && getScenario(r.scenarioId);
+      const sc = r && getFullScenario(r.scenarioId);
       if (!r || !sc || r.status !== "prep") return s;
       const ready = !sc.requiresPrep || (r.prep[r.roles.seller] && r.prep[r.roles.buyer]);
       if (!ready && !a.force) return s;
@@ -273,7 +274,7 @@ function reduce(prev: Session, a: Action): Session {
     }
     case "round.reveal": {
       const r = findRound(s, a.roundId);
-      const sc = r && getScenario(r.scenarioId);
+      const sc = r && getFullScenario(r.scenarioId);
       if (!r || !sc) return s;
       if (r.status === "prep" || r.status === "negotiating") {
         // Revealing without a submitted deal counts as no deal.

@@ -1,11 +1,11 @@
 import { exportMarkdown } from "@/lib/export";
 import { getSession } from "@/lib/store";
-import { authorized, unauthorized } from "@/lib/auth";
+import { currentUser, unauthorized } from "@/lib/serverAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  if (!authorized(req)) return unauthorized();
+  if (!(await currentUser())) return unauthorized();
   const format = new URL(req.url).searchParams.get("format") ?? "md";
   const s = await getSession();
   const stamp = new Date().toISOString().slice(0, 10);

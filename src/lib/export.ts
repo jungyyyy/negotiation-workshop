@@ -2,7 +2,7 @@ import { DRILL_SETS, drillRoles } from "./drills";
 import { EXPERIMENTS } from "./experiments";
 import { mistakesFor, rubricTotals } from "./mistakes";
 import { RUBRIC } from "./rubric";
-import { getScenario } from "./scenarios";
+import { getFullScenario } from "./scenarioSecrets";
 import { computeScores } from "./scoring";
 import { PEOPLE, personName, type Session } from "./types";
 
@@ -14,7 +14,7 @@ export function exportMarkdown(s: Session): string {
 
   out.push(`## Rounds`, ``);
   for (const r of s.rounds) {
-    const sc = getScenario(r.scenarioId);
+    const sc = getFullScenario(r.scenarioId);
     if (!sc) continue;
     out.push(`### ${r.id} · ${sc.title} (${r.status})`, ``);
     out.push(`Seller ${personName(r.roles.seller)} · Buyer ${personName(r.roles.buyer)} · Observer ${personName(r.roles.observer)}`, ``);

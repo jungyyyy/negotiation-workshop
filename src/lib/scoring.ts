@@ -1,5 +1,5 @@
-import type { PointsTable, Scenario } from "./scenarios";
-import { pointsFor } from "./scenarios";
+import type { PointsTable } from "./scenarios";
+import { pointsFor, type FullScenario } from "./scenarioSecrets";
 import type { FrontierDeal, Round, Scores } from "./types";
 
 /** Every combination of options, with both sides' points. */
@@ -31,7 +31,7 @@ export function maxJointPoints(table: PointsTable): number {
   return Math.max(...allDeals(table).map((d) => d.joint));
 }
 
-export function computeScores(scenario: Scenario, round: Round): Scores | undefined {
+export function computeScores(scenario: FullScenario, round: Round): Scores | undefined {
   const deal = round.deal ?? {};
   const noDeal = !!round.noDeal;
 

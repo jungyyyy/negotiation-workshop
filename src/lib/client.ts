@@ -1,45 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { Action, Person, Session, Timer } from "./types";
-import { PEOPLE } from "./types";
+import type { Action, Timer, View } from "./types";
 
-const ME_KEY = "nw.person";
-const PASS_KEY = "nw.passcode";
-export const PASS_HEADER = "x-passcode";
 export const UNAUTH_EVENT = "nw:unauthorized";
 const POLL_MS = 2000;
 
-export function getPasscode(): string {
-  try {
-    return localStorage.getItem(PASS_KEY) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-export function setPasscode(v: string) {
-  try {
-    if (v) localStorage.setItem(PASS_KEY, v);
-    else localStorage.removeItem(PASS_KEY);
-  } catch {
-    /* ignore */
-  }
-}
-
-/** fetch with the passcode header; a 401 locks the app again. */
+/** fetch for the API; a 401 locks the app back to the sign-in screen. */
 export async function apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
-  const headers = new Headers(init.headers);
-  const pass = getPasscode();
-  if (pass) headers.set(PASS_HEADER, pass);
-  const r = await fetch(url, { ...init, headers, cache: "no-store" });
+  const r = await fetch(url, { ...init, cache: "no-store" });
   if (r.status === 401) window.dispatchEvent(new Event(UNAUTH_EVENT));
   return r;
 }
 
+export async function signOut() {
+  await fetch("/api/auth/signout", { method: "POST" });
+  window.dispatchEvent(new Event(UNAUTH_EVENT));
+}
+
 /** Shared session state, polled every two seconds. */
 export function useSession() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<View | null>(null);
   const [live, setLive] = useState(false);
 
   useEffect(() => {
@@ -86,38 +67,6 @@ export function useSession() {
   }, []);
 
   return { session, act, live };
-}
-
-/** Which person this device belongs to (localStorage). */
-export function useMe(): {
-  me: Person | null;
-  setMe: (p: Person | null) => void;
-  ready: boolean;
-} {
-  const [me, setMeState] = useState<Person | null>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem(ME_KEY);
-      if (v && PEOPLE.some((p) => p.id === v)) setMeState(v as Person);
-    } catch {
-      /* private mode */
-    }
-    setReady(true);
-  }, []);
-
-  const setMe = useCallback((p: Person | null) => {
-    setMeState(p);
-    try {
-      if (p) localStorage.setItem(ME_KEY, p);
-      else localStorage.removeItem(ME_KEY);
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
-  return { me, setMe, ready };
 }
 
 export function useNow(intervalMs = 250): number {

@@ -1,8 +1,8 @@
 "use client";
 
 import { fmtMs } from "@/lib/client";
-import { pointsFor, type Scenario } from "@/lib/scenarios";
-import { personName, type Action, type Person, type Round } from "@/lib/types";
+import type { Scenario, Truth } from "@/lib/scenarios";
+import { personName, type Action, type Person, type Round, type RoundAccess } from "@/lib/types";
 import { Card, Label } from "../ui";
 import { DealSummary } from "./DealForm";
 import { LogCard } from "./ObserverPanel";
@@ -15,17 +15,20 @@ export function RevealView({
   round,
   me,
   act,
+  access,
 }: {
   scenario: Scenario;
   round: Round;
   me: Person;
   act: (a: Action) => void;
+  access: RoundAccess;
 }) {
   const observer = round.roles.observer === me;
   const elapsed = round.startedAt && round.submittedAt ? round.submittedAt - round.startedAt : null;
   const deal = round.deal ?? {};
-  const sellerPts = scenario.points && !round.noDeal ? pointsFor(scenario.points, deal, "seller") : null;
-  const buyerPts = scenario.points && !round.noDeal ? pointsFor(scenario.points, deal, "buyer") : null;
+  const pts = round.scores?.kind === "points" ? round.scores : null;
+  const sellerPts = pts?.seller ?? null;
+  const buyerPts = pts?.buyer ?? null;
 
   return (
     <div className="flex flex-col gap-3">
@@ -37,17 +40,17 @@ export function RevealView({
         <div className="mt-2">
           <DealSummary scenario={scenario} round={round} />
         </div>
-        {scenario.points && sellerPts != null && buyerPts != null ? (
+        {pts && sellerPts != null && buyerPts != null ? (
           <div className="mt-3 grid grid-cols-2 gap-2 text-center">
             <div className="rounded-xl bg-soft p-2">
               <div className="text-xs text-muted">{personName(round.roles.seller)} · seller</div>
               <div className="tabular text-2xl font-bold">{sellerPts}</div>
-              <div className="text-xs text-muted">BATNA {scenario.points.sellerBatna}</div>
+              <div className="text-xs text-muted">BATNA {pts.sellerBatna}</div>
             </div>
             <div className="rounded-xl bg-soft p-2">
               <div className="text-xs text-muted">{personName(round.roles.buyer)} · buyer</div>
               <div className="tabular text-2xl font-bold">{buyerPts}</div>
-              <div className="text-xs text-muted">BATNA {scenario.points.buyerBatna}</div>
+              <div className="text-xs text-muted">BATNA {pts.buyerBatna}</div>
             </div>
           </div>
         ) : null}
@@ -55,22 +58,28 @@ export function RevealView({
 
       <ScoreCard scenario={scenario} round={round} />
 
-      <Card className="bg-soft">
-        <Label>What was really going on</Label>
-        <Paragraphs items={scenario.hidden} className="mt-1" />
-      </Card>
+      {access.hidden ? (
+        <Card className="bg-soft">
+          <Label>What was really going on</Label>
+          <Paragraphs items={access.hidden} className="mt-1" />
+        </Card>
+      ) : null}
 
-      <PrepVersusTruth scenario={scenario} round={round} />
+      <PrepVersusTruth scenario={scenario} round={round} truth={access.truth} />
 
-      <Collapsible title={`Seller sheet · ${scenario.sellerParty}`} subtitle={personName(round.roles.seller)}>
-        <Paragraphs items={scenario.sellerSheet} />
-      </Collapsible>
-      <Collapsible title={`Buyer sheet · ${scenario.buyerParty}`} subtitle={personName(round.roles.buyer)}>
-        <Paragraphs items={scenario.buyerSheet} />
-      </Collapsible>
-      {scenario.points ? (
+      {access.sheets.seller ? (
+        <Collapsible title={`Seller sheet · ${scenario.sellerParty}`} subtitle={personName(round.roles.seller)}>
+          <Paragraphs items={access.sheets.seller} />
+        </Collapsible>
+      ) : null}
+      {access.sheets.buyer ? (
+        <Collapsible title={`Buyer sheet · ${scenario.buyerParty}`} subtitle={personName(round.roles.buyer)}>
+          <Paragraphs items={access.sheets.buyer} />
+        </Collapsible>
+      ) : null}
+      {access.points?.side === "both" ? (
         <Collapsible title="Both points tables" subtitle="The agreed options are highlighted">
-          <PointsTableView table={scenario.points} side="both" highlight={round.noDeal ? undefined : deal} />
+          <PointsTableView table={access.points.table} side="both" highlight={round.noDeal ? undefined : deal} />
         </Collapsible>
       ) : null}
 
@@ -81,13 +90,13 @@ export function RevealView({
   );
 }
 
-function PrepVersusTruth({ scenario, round }: { scenario: Scenario; round: Round }) {
+function PrepVersusTruth({ scenario, round, truth }: { scenario: Scenario; round: Round; truth?: Truth }) {
   if (!scenario.requiresPrep) return null;
   const sides: { person: Person; role: "seller" | "buyer" }[] = [
     { person: round.roles.seller, role: "seller" },
     { person: round.roles.buyer, role: "buyer" },
   ];
-  const t = scenario.truth;
+  const t = truth;
   return (
     <Card>
       <Label>Prep forms next to what was true</Label>
