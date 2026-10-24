@@ -40,10 +40,12 @@ browser. State is polled by every device every two seconds.
 
 ## Supabase
 
-Create one table. In the Supabase SQL editor:
+The Supabase project is shared with another small app that has its own table,
+so this app uses a dedicated table, `workshop_sessions` by default. The name is
+configurable through `SUPABASE_TABLE`. Create it in the Supabase SQL editor:
 
 ```sql
-create table if not exists public.sessions (
+create table if not exists public.workshop_sessions (
   id          text primary key,
   state       jsonb not null,
   rev         integer not null default 1,
@@ -51,24 +53,31 @@ create table if not exists public.sessions (
 );
 
 -- The app uses the service-role key from the server only, so no policies are
--- needed. Keep RLS on so the anon key (which the app never uses) cannot read it.
-alter table public.sessions enable row level security;
+-- needed. Keep RLS on so the anon key (which the app never uses for data)
+-- cannot read it.
+alter table public.workshop_sessions enable row level security;
 ```
 
 The app keeps a single row with `id = 'default'`. `rev` is bumped on every
 write and checked on update, so three devices acting at the same moment cannot
 overwrite each other.
 
+Because the project is shared, the service-role key can read and write the
+other app's table as well. It must stay server-side only: it is read from the
+environment in server code and never sent to the browser.
+
 ## Supabase Auth (magic links)
 
 1. **Authentication → Providers → Email**: enable the Email provider, turn
    **Confirm email** on, and leave passwords off (the app never uses them).
    Magic links are enabled by default with the Email provider.
-2. **Authentication → URL Configuration**: set **Site URL** to your Vercel
-   domain, for example `https://negotiation-workshop.vercel.app`, and add
+2. **Authentication → URL Configuration**: add
    `https://negotiation-workshop.vercel.app/auth/callback` (and the same path
    for `http://localhost:3000` if you want to test links locally) to
-   **Redirect URLs**.
+   **Redirect URLs**. The project is shared with another app, so this app's
+   Vercel domain must be in that list alongside the other app's domain; do not
+   replace the other app's entries. **Site URL** can stay as the other app's
+   domain, since this app passes its own redirect URL when sending the link.
 3. Optional, recommended: **Authentication → Email Templates → Magic Link**:
    leave the default `{{ .ConfirmationURL }}` link. The callback route accepts
    both the default PKCE link (`?code=`) and the token-hash form
@@ -88,7 +97,8 @@ Set these in Vercel (Project → Settings → Environment Variables) and in
 |---|---|
 | `SUPABASE_URL` | Supabase → Settings → API → Project URL |
 | `SUPABASE_ANON_KEY` | Supabase → Settings → API → anon public key. Used on the server for Auth. |
-| `SUPABASE_SERVICE_KEY` | Supabase → Settings → API → service_role key. Server only; never exposed to the browser. |
+| `SUPABASE_SERVICE_KEY` | Supabase → Settings → API → service_role key. Server only; never exposed to the browser. Shared project: it can also read the other app's table. |
+| `SUPABASE_TABLE` | Table holding the workshop session. Default `workshop_sessions`. |
 | `ALLOWED_EMAILS` | Comma-separated: `jung@example.com,rehan@example.com,harry@example.com` |
 
 ## Deploy to Vercel
@@ -96,7 +106,7 @@ Set these in Vercel (Project → Settings → Environment Variables) and in
 1. Push this repository to GitHub (it is private; the PDFs are not in it).
 2. In Vercel, **Add New → Project**, import the repository. Framework preset:
    Next.js (detected). `vercel.json` pins the region to Frankfurt.
-3. Add the four environment variables above for Production (and Preview if
+3. Add the environment variables above for Production (and Preview if
    you want preview deployments to share the same session). Then set the
    Supabase Site URL and Redirect URL to the Vercel domain (section above).
 4. Deploy. Open the production URL, enter your Myda email, open the link from

@@ -6,7 +6,8 @@ import type { Session } from "./types";
 /**
  * Where the single workshop session lives.
  *
- * Production: a Supabase (Postgres) table `sessions` with one row, id "default",
+ * Production: a Supabase (Postgres) table (SUPABASE_TABLE, default
+ * "workshop_sessions") with one row, id "default",
  * a jsonb `state` column and an integer `rev` used for optimistic concurrency
  * (three phones can act at the same moment).
  *
@@ -25,29 +26,36 @@ export interface Storage {
 }
 
 const ROW_ID = "default";
+export const DEFAULT_TABLE = "workshop_sessions";
+
+/** The Supabase project is shared with another app, so our table name is configurable. */
+export function tableName(): string {
+  return process.env.SUPABASE_TABLE?.trim() || DEFAULT_TABLE;
+}
 
 class SupabaseStorage implements Storage {
   kind = "supabase" as const;
   private client: SupabaseClient;
+  private table = tableName();
   constructor(url: string, serviceKey: string) {
     // Service-role key: server only. Never import this module from client code.
     this.client = createClient(url, serviceKey, { auth: { persistSession: false } });
   }
   async load(): Promise<Loaded | null> {
-    const { data, error } = await this.client.from("sessions").select("state, rev").eq("id", ROW_ID).maybeSingle();
+    const { data, error } = await this.client.from(this.table).select("state, rev").eq("id", ROW_ID).maybeSingle();
     if (error) throw new Error(`Supabase load failed: ${error.message}`);
     if (!data) return null;
     return { state: data.state as Session, rev: Number(data.rev) };
   }
   async save(state: Session, expectedRev: number): Promise<boolean> {
     if (expectedRev === 0) {
-      const { error } = await this.client.from("sessions").insert({ id: ROW_ID, state, rev: 1 });
+      const { error } = await this.client.from(this.table).insert({ id: ROW_ID, state, rev: 1 });
       if (!error) return true;
       // Row exists already (someone else created it): fall through to a conditional update.
       if (error.code !== "23505") throw new Error(`Supabase insert failed: ${error.message}`);
     }
     const { data, error } = await this.client
-      .from("sessions")
+      .from(this.table)
       .update({ state, rev: expectedRev + 1, updated_at: new Date().toISOString() })
       .eq("id", ROW_ID)
       .eq("rev", expectedRev)
