@@ -31,7 +31,9 @@ export function maxJointPoints(table: PointsTable): number {
   return Math.max(...allDeals(table).map((d) => d.joint));
 }
 
-export function computeScores(scenario: FullScenario, round: Round): Scores | undefined {
+export type Scorable = Pick<Round, "deal" | "noDeal" | "startedAt" | "submittedAt">;
+
+export function computeScores(scenario: FullScenario, round: Scorable): Scores | undefined {
   const deal = round.deal ?? {};
   const noDeal = !!round.noDeal;
 

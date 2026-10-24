@@ -35,6 +35,15 @@ export function mistakesFor(session: Session, person: Person): MistakeCount[] {
         if (scores[i] === 0) bump(`rubric:${item.id}`, item.miss, r.id);
       });
     }
+    // AI transcript debrief (feature 1): zeros count too, tagged "AI".
+    const side = r.roles.seller === person ? "seller" : r.roles.buyer === person ? "buyer" : null;
+    const ai = side ? r.debrief?.rubric?.[side] : undefined;
+    if (ai) {
+      for (const it of ai) {
+        const item = RUBRIC.find((x) => x.id === it.id);
+        if (item && it.score === 0) bump(`ai:${item.id}`, `AI: ${item.miss}`, r.id);
+      }
+    }
   }
   for (const [roundId, ids] of Object.entries(session.mistakes?.[person] ?? {})) {
     for (const id of ids) {

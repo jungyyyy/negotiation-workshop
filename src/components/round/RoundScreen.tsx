@@ -15,11 +15,13 @@ export function RoundScreen({
   me,
   step,
   act,
+  onView,
 }: {
   session: View;
   me: Person;
   step: Step;
   act: (a: Action) => void;
+  onView?: (v: View) => void;
 }) {
   const round = session.rounds.find((r) => r.id === step.roundId);
   const scenario = round && getScenario(round.scenarioId);
@@ -54,7 +56,7 @@ export function RoundScreen({
 
       {round.status === "revealed" || step.kind === "reveal" ? (
         round.status === "revealed" ? (
-          <RevealView scenario={scenario} round={round} me={me} act={act} access={access} />
+          <RevealView scenario={scenario} round={round} me={me} act={act} access={access} onView={onView} />
         ) : (
           <Card>
             <p className="text-muted">Waiting for the observer or facilitator to reveal.</p>

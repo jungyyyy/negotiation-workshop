@@ -5,7 +5,20 @@ import type { Scenario } from "@/lib/scenarios";
 import type { Action, Deal, DealValue, Round } from "@/lib/types";
 import { Button, Card, Label } from "../ui";
 
-export function DealForm({ scenario, round, act }: { scenario: Scenario; round: Round; act: (a: Action) => void }) {
+export function DealForm({
+  scenario,
+  round,
+  act,
+  onSubmit,
+  submitLabel,
+}: {
+  scenario: Scenario;
+  round: Pick<Round, "id" | "deal" | "noDeal" | "status">;
+  act?: (a: Action) => void;
+  /** Override where the deal goes (practice rounds). Defaults to the live round action. */
+  onSubmit?: (deal: Deal, noDeal: boolean) => void;
+  submitLabel?: string;
+}) {
   const [deal, setDeal] = useState<Deal>(() => ({ ...(round.deal ?? {}) }));
   const [noDeal, setNoDeal] = useState(!!round.noDeal);
 
@@ -23,7 +36,8 @@ export function DealForm({ scenario, round, act }: { scenario: Scenario; round: 
         onSubmit={(e) => {
           e.preventDefault();
           if (missing.length) return;
-          act({ type: "round.submit", roundId: round.id, deal, noDeal });
+          if (onSubmit) onSubmit(deal, noDeal);
+          else act?.({ type: "round.submit", roundId: round.id, deal, noDeal });
         }}
       >
         <label className="flex items-center gap-3 min-h-12 rounded-xl border border-line px-3">
@@ -104,7 +118,7 @@ export function DealForm({ scenario, round, act }: { scenario: Scenario; round: 
           : null}
 
         <Button type="submit" variant="primary" size="lg" disabled={missing.length > 0}>
-          {round.status === "submitted" ? "Update deal" : "Submit deal"}
+          {submitLabel ?? (round.status === "submitted" ? "Update deal" : "Submit deal")}
         </Button>
         {missing.length ? <p className="text-xs text-muted text-center">Fill the starred fields.</p> : null}
       </form>
@@ -112,7 +126,7 @@ export function DealForm({ scenario, round, act }: { scenario: Scenario; round: 
   );
 }
 
-export function DealSummary({ scenario, round }: { scenario: Scenario; round: Round }) {
+export function DealSummary({ scenario, round }: { scenario: Scenario; round: Pick<Round, "deal" | "noDeal"> }) {
   if (round.noDeal) return <div className="text-xl font-bold text-warn">No deal</div>;
   const deal = round.deal ?? {};
   return (

@@ -17,6 +17,27 @@ participant it belongs to; the observer's tools only to that round's observer.
 One person also keeps the facilitator view (`/facilitator`) open to run the
 agenda and the clock.
 
+Two AI features use the Anthropic API (model `claude-sonnet-5-5`):
+
+- **Debrief from transcript.** On every round's reveal screen the observer
+  pastes the call transcript (from Wispr Flow; speaker labels may be wrong)
+  and gets a structured debrief: the decisive moment, every question asked,
+  what information surfaced and what stayed hidden, each offer and concession,
+  tactics and responses, an AI rubric next to the observer's, and one rule
+  per negotiator. AI rubric zeros join the personal mistakes lists, tagged
+  "AI". Try it with `fixtures/demo-transcript-r1.txt`.
+- **Practice against an AI counterpart.** `/practice`, available any time:
+  pick a scenario and a side, fill the prep form, negotiate in a streaming
+  chat with a counterpart who plays the other role from its confidential
+  sheet, submit the deal, and get the same scoring and reveal as a live round,
+  followed by the debrief. Practice rounds are stored per person, shown on
+  the personal page, included in the export, and kept out of the live
+  rotation and rubric totals.
+
+Prompts live in `src/lib/ai/prompts.ts` as plain strings. Every call's token
+counts are logged to the server console and summed in the session state, so
+the export shows the day's spend. See `TESTING.md` for how to try both.
+
 ## Prerequisites
 
 - Node.js 20 or newer (built with Node 22)
@@ -99,6 +120,7 @@ Set these in Vercel (Project → Settings → Environment Variables) and in
 | `SUPABASE_ANON_KEY` | Supabase → Settings → API → anon public key. Used on the server for Auth. |
 | `SUPABASE_SERVICE_KEY` | Supabase → Settings → API → service_role key. Server only; never exposed to the browser. Shared project: it can also read the other app's table. |
 | `SUPABASE_TABLE` | Table holding the workshop session. Default `workshop_sessions`. |
+| `ANTHROPIC_API_KEY` | Anthropic Console → API keys. Server only. Needed for the transcript debrief and the practice counterpart. |
 | `ALLOWED_EMAILS` | Comma-separated. The local part of each address must start with the participant id (`jung…`, `rehan…`, `harry…`), e.g. `jung@example.com,rehan@example.com,harry@example.com` |
 
 ## Deploy to Vercel

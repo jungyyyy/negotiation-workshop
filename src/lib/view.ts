@@ -26,7 +26,7 @@ const EXPERIMENT_REVEAL: Record<string, [string, string]> = {
 };
 
 export function buildView(s: Session, me: Person, email: string): View {
-  const v: View = { ...structuredClone(s), me, email, access: {} };
+  const v: View = { ...structuredClone(s), me, email, access: {}, practiceAccess: {} };
 
   // Quizzes: other people's answers are theirs; scores and status stay visible.
   for (const bySprint of Object.values(v.quizzes)) {
@@ -43,8 +43,25 @@ export function buildView(s: Session, me: Person, email: string): View {
     if (!open) for (const p of PEOPLE) if (p.id !== me) delete byPerson[p.id];
   }
 
-  // Personal mistakes lists: own only.
+  // Personal mistakes lists and practice rounds: own only.
   v.mistakes = { [me]: v.mistakes[me] ?? {} };
+  v.practice = { [me]: v.practice[me] ?? [] };
+  for (const pr of v.practice[me] ?? []) {
+    const full = getFullScenario(pr.scenarioId);
+    if (!full) continue;
+    const revealed = pr.status === "revealed";
+    const mine = pr.side;
+    const theirs = mine === "seller" ? "buyer" : "seller";
+    const access: RoundAccess = { role: mine, sheets: {} };
+    access.sheets[mine] = mine === "seller" ? full.sellerSheet : full.buyerSheet;
+    if (revealed) {
+      access.sheets[theirs] = theirs === "seller" ? full.sellerSheet : full.buyerSheet;
+      access.hidden = full.hidden;
+      access.truth = full.truth;
+    }
+    if (full.points) access.points = { table: full.points, side: revealed ? "both" : mine };
+    v.practiceAccess[pr.id] = access;
+  }
 
   // Rounds: sheets, points, hidden material and other people's prep forms.
   for (const r of v.rounds) {

@@ -58,6 +58,9 @@ export default function JoinPage() {
             <Button variant="ghost" size="sm" href="/facilitator">
               Facilitator view
             </Button>
+            <Button variant="ghost" size="sm" href="/practice">
+              Practice with the AI
+            </Button>
           </div>
         </div>
 

@@ -2,13 +2,14 @@
 
 import { fmtMs } from "@/lib/client";
 import type { Scenario, Truth } from "@/lib/scenarios";
-import { personName, type Action, type Person, type Round, type RoundAccess } from "@/lib/types";
+import { personName, type Action, type Person, type Round, type RoundAccess, type View } from "@/lib/types";
 import { Card, Label } from "../ui";
 import { DealSummary } from "./DealForm";
 import { LogCard } from "./ObserverPanel";
 import { RubricForm } from "./Rubric";
 import { Collapsible, Paragraphs, PointsTableView } from "./Sheet";
 import { ScoreCard } from "./ScoreCard";
+import { DebriefPanel } from "../DebriefPanel";
 
 export function RevealView({
   scenario,
@@ -16,12 +17,14 @@ export function RevealView({
   me,
   act,
   access,
+  onView,
 }: {
   scenario: Scenario;
   round: Round;
   me: Person;
   act: (a: Action) => void;
   access: RoundAccess;
+  onView?: (v: View) => void;
 }) {
   const observer = round.roles.observer === me;
   const elapsed = round.startedAt && round.submittedAt ? round.submittedAt - round.startedAt : null;
@@ -86,6 +89,17 @@ export function RevealView({
       <LogCard round={round} act={act} readOnly={!observer} />
 
       <RubricForm scenario={scenario} round={round} act={act} readOnly={!observer} />
+
+      <DebriefPanel
+        roundId={round.id}
+        debrief={round.debrief}
+        debriefError={round.debriefError}
+        canAnalyze={observer}
+        sellerName={personName(round.roles.seller)}
+        buyerName={personName(round.roles.buyer)}
+        humanRubric={{ seller: round.rubric?.[round.roles.seller]?.scores, buyer: round.rubric?.[round.roles.buyer]?.scores }}
+        onView={(v) => onView?.(v)}
+      />
     </div>
   );
 }

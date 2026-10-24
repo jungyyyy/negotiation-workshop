@@ -66,7 +66,10 @@ export function useSession() {
     if (r.ok) setSession(await r.json());
   }, []);
 
-  return { session, act, live };
+  /** Replace the local view with one returned by another API route. */
+  const replace = useCallback((v: View) => setSession(v), []);
+
+  return { session, act, live, replace };
 }
 
 export function useNow(intervalMs = 250): number {

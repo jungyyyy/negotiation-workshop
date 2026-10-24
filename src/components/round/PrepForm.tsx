@@ -26,6 +26,7 @@ const DEFAULT_LABELS = {
   firstOffer: "First-offer plan: who opens, at what, with which justification",
 };
 
+/** Prep form for a live round: saves to the round's prep map. */
 export function PrepForm({
   scenario,
   round,
@@ -37,13 +38,36 @@ export function PrepForm({
   me: Person;
   act: (a: Action) => void;
 }) {
-  const saved = round.prep[me];
+  return (
+    <PrepFormBase
+      scenario={scenario}
+      saved={round.prep[me]}
+      canEdit={round.status === "prep"}
+      waitingText="Waiting for the observer to start the clock."
+      onSubmit={(answers) => act({ type: "prep.submit", roundId: round.id, person: me, answers })}
+    />
+  );
+}
+
+/** The form itself, reusable for practice rounds. */
+export function PrepFormBase({
+  scenario,
+  saved,
+  canEdit,
+  waitingText,
+  onSubmit,
+}: {
+  scenario: Scenario;
+  saved?: PrepAnswers;
+  canEdit: boolean;
+  waitingText?: string;
+  onSubmit: (answers: Draft) => void;
+}) {
   const [editing, setEditing] = useState(!saved);
   const [d, setD] = useState<Draft>(() =>
     saved ? { ...saved } : { ...EMPTY, questions: ["", "", ""] },
   );
   const labels = { ...DEFAULT_LABELS, ...(scenario.prepLabels ?? {}) };
-  const canEdit = round.status === "prep";
 
   const required: (keyof typeof DEFAULT_LABELS)[] = ["batna", "reservation", "theirBatna", "theirReservation", "target", "firstOffer"];
   const complete = required.every((k) => d[k].trim().length > 0) && d.questions.every((q) => q.trim().length > 0);
@@ -77,7 +101,7 @@ export function PrepForm({
             </dd>
           </div>
         </dl>
-        {canEdit ? <p className="text-sm text-muted mt-3">Waiting for the observer to start the clock.</p> : null}
+        {canEdit && waitingText ? <p className="text-sm text-muted mt-3">{waitingText}</p> : null}
       </Card>
     );
   }
@@ -90,7 +114,7 @@ export function PrepForm({
         onSubmit={(e) => {
           e.preventDefault();
           if (!complete) return;
-          act({ type: "prep.submit", roundId: round.id, person: me, answers: d });
+          onSubmit(d);
           setEditing(false);
         }}
       >

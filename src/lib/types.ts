@@ -76,6 +76,71 @@ export type Scores =
     };
 export type Deal = Record<string, DealValue>;
 
+/** Running total of Anthropic API tokens, kept in state for the export. */
+export interface AiUsage {
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface DebriefRubricItem {
+  id: string;
+  score: number;
+  reason: string;
+}
+
+/** Result of the transcript debrief (feature 1). Field names match the model's JSON. */
+export interface Debrief {
+  createdAt: number;
+  transcriptChars: number;
+  decisive_moment: { quote: string; why: string };
+  questions: { who: string; question: string; about: string; moved_deal: boolean }[];
+  information: {
+    revealed: { what: string; by: string; when: string }[];
+    stayed_hidden: { what: string; question_that_would_have_surfaced_it: string }[];
+  };
+  offers_and_concessions: {
+    who: string;
+    amount: string;
+    justification: boolean;
+    labeled: boolean;
+    reciprocated: boolean;
+    unilateral: boolean;
+  }[];
+  tactics: { who: string; tactic: string; quote: string; response: string }[];
+  rubric: { seller: DebriefRubricItem[]; buyer: DebriefRubricItem[] };
+  one_rule_each: { seller: string; buyer: string };
+  caveats: string;
+}
+
+export type PracticeStatus = "prep" | "chatting" | "submitted" | "revealed";
+
+export interface PracticeMessage {
+  role: "user" | "assistant";
+  content: string;
+  at: number;
+}
+
+/** A solo practice round against the AI counterpart (feature 2). */
+export interface PracticeRound {
+  id: string;
+  scenarioId: string;
+  /** The side the person plays; the AI plays the other. */
+  side: "seller" | "buyer";
+  status: PracticeStatus;
+  prep?: PrepAnswers;
+  messages: PracticeMessage[];
+  deal?: Deal;
+  noDeal?: boolean;
+  scores?: Scores;
+  debrief?: Debrief;
+  debriefError?: string;
+  createdAt: number;
+  startedAt?: number;
+  submittedAt?: number;
+  revealedAt?: number;
+}
+
 export interface Round {
   id: string; // "R1" … "R5", "R3b" for the late-penalty drill
   scenarioId: string;
@@ -89,6 +154,9 @@ export interface Round {
   rubric?: Partial<Record<Person, { scores: number[] }>>;
   /** Observer: the moment that decided this negotiation. */
   moment?: string;
+  /** Transcript debrief from the AI (feature 1). */
+  debrief?: Debrief;
+  debriefError?: string;
   observerLog: { at: number; text: string }[];
   startedAt?: number;
   submittedAt?: number;
@@ -155,6 +223,9 @@ export interface Session {
   rules: Partial<Record<Person, { day1?: string; final?: string }>>;
   /** Cross-case debrief: patterns named by the group. */
   patterns: { at: number; person: Person; text: string }[];
+  /** Solo practice rounds per person. Not part of the live rotation. */
+  practice: Partial<Record<Person, PracticeRound[]>>;
+  aiUsage: AiUsage;
   rounds: Round[];
 }
 
@@ -193,6 +264,16 @@ export type Action =
   | { type: "rule.set"; person: Person; which: "day1" | "final"; text: string }
   | { type: "pattern.add"; person: Person; text: string }
   | { type: "pattern.remove"; at: number }
+  // Server-only actions (written by the AI routes, refused from the client)
+  | { type: "ai.usage"; inputTokens: number; outputTokens: number }
+  | { type: "round.debrief"; roundId: string; debrief?: Debrief; error?: string }
+  | { type: "practice.message"; id: string; person: Person; role: "user" | "assistant"; content: string }
+  | { type: "practice.debrief"; id: string; person: Person; debrief?: Debrief; error?: string }
+  // Practice (feature 2)
+  | { type: "practice.start"; person: Person; scenarioId: string; side: "seller" | "buyer" }
+  | { type: "practice.prep"; id: string; person: Person; answers: Omit<PrepAnswers, "submittedAt"> }
+  | { type: "practice.submit"; id: string; person: Person; deal: Deal; noDeal?: boolean }
+  | { type: "practice.delete"; id: string; person: Person }
   | { type: "reset"; demo?: boolean };
 
 export const PREWORK: { title: string; detail: string }[] = [
@@ -221,4 +302,6 @@ export interface View extends Session {
   me: Person;
   email: string;
   access: Record<string, RoundAccess>;
+  /** Same, for the viewer's own practice rounds, keyed by practice id. */
+  practiceAccess: Record<string, RoundAccess>;
 }

@@ -64,6 +64,7 @@ export function exportMarkdown(s: Session): string {
       out.push(``);
     }
     if (r.moment) out.push(`**The moment:** ${r.moment}`, ``);
+    if (r.debrief) out.push(...debriefMarkdown(r.debrief, personName(r.roles.seller), personName(r.roles.buyer)));
     if (r.observerLog.length) {
       out.push(`**Observer log**`, ``);
       const t0 = r.startedAt ?? r.observerLog[0].at;
@@ -120,10 +121,57 @@ export function exportMarkdown(s: Session): string {
     out.push(`- Rule for day 2: ${s.rules[p.id]?.day1 ?? "—"}`, `- Rule for the next real call: ${s.rules[p.id]?.final ?? "—"}`, ``);
   }
 
+  out.push(`## Practice rounds (AI counterpart)`, ``);
+  for (const p of PEOPLE) {
+    const list = s.practice[p.id] ?? [];
+    if (!list.length) continue;
+    out.push(`### ${p.name}`, ``);
+    for (const pr of list) {
+      const sc = getFullScenario(pr.scenarioId);
+      out.push(`#### ${pr.scenarioId} · ${sc?.title ?? ""} · as ${pr.side} · ${fmtDate(pr.createdAt)} (${pr.status})`, ``);
+      if (pr.noDeal) out.push(`No deal.`, ``);
+      else if (pr.deal && sc) {
+        for (const f of sc.dealFields) {
+          const v = pr.deal[f.key];
+          if (v === undefined || v === "") continue;
+          const shown = f.type === "select" ? f.options.find((o) => o.value === v)?.label ?? String(v) : f.type === "boolean" ? (v ? "yes" : "no") : String(v);
+          out.push(`- ${f.label}: ${shown}`);
+        }
+        out.push(``);
+      }
+      if (pr.scores) out.push(`Scores: ${JSON.stringify(pr.scores, (k, v) => (k === "frontier" || k === "improvements" ? undefined : v))}`, ``);
+      if (pr.prep) out.push(`Prep: BATNA ${pr.prep.batna} · RV ${pr.prep.reservation} · their BATNA ${pr.prep.theirBatna} · their RV ${pr.prep.theirReservation} · target ${pr.prep.target}`, ``);
+      if (pr.messages.length) {
+        out.push(`Transcript (${pr.messages.length} messages):`, ``);
+        for (const m of pr.messages) out.push(`- ${m.role === "user" ? p.name : "Counterpart"}: ${m.content.replace(/\n+/g, " ")}`);
+        out.push(``);
+      }
+      if (pr.debrief) out.push(...debriefMarkdown(pr.debrief, pr.side === "seller" ? p.name : "Counterpart", pr.side === "buyer" ? p.name : "Counterpart"));
+    }
+  }
+
+  out.push(`## AI usage`, ``, `- Calls: ${s.aiUsage.calls}`, `- Input tokens: ${s.aiUsage.inputTokens}`, `- Output tokens: ${s.aiUsage.outputTokens}`, ``);
+
   if (s.patterns.length) {
     out.push(`## Patterns named in the cross-case debrief`, ``);
     for (const p of s.patterns) out.push(`- ${personName(p.person)}: ${p.text}`);
     out.push(``);
   }
   return out.join("\n");
+}
+
+function debriefMarkdown(d: import("./types").Debrief, sellerName: string, buyerName: string): string[] {
+  const out: string[] = [`**AI debrief from transcript** (${fmtDate(d.createdAt)})`, ``];
+  if (d.caveats) out.push(`Caveats: ${d.caveats}`, ``);
+  out.push(`- Decisive moment: "${d.decisive_moment.quote}" — ${d.decisive_moment.why}`);
+  out.push(`- Questions (${d.questions.length}): ${d.questions.map((q) => `${q.who}: "${q.question}" [${q.about}${q.moved_deal ? ", moved the deal" : ""}]`).join("; ")}`);
+  out.push(`- Revealed: ${d.information.revealed.map((r) => `${r.what} (${r.by}, ${r.when})`).join("; ") || "nothing"}`);
+  out.push(`- Stayed hidden: ${d.information.stayed_hidden.map((r) => `${r.what} → "${r.question_that_would_have_surfaced_it}"`).join("; ") || "nothing"}`);
+  out.push(`- Offers: ${d.offers_and_concessions.map((o) => `${o.who} ${o.amount} (justified ${o.justification ? "y" : "n"}, labeled ${o.labeled ? "y" : "n"}, reciprocated ${o.reciprocated ? "y" : "n"}, unilateral ${o.unilateral ? "y" : "n"})`).join("; ") || "none"}`);
+  out.push(`- Tactics: ${d.tactics.map((t) => `${t.who}: ${t.tactic} → ${t.response}`).join("; ") || "none"}`);
+  out.push(`- AI rubric ${sellerName}: ${d.rubric.seller.map((i) => `${i.id} ${i.score}`).join(", ")}`);
+  out.push(`- AI rubric ${buyerName}: ${d.rubric.buyer.map((i) => `${i.id} ${i.score}`).join(", ")}`);
+  out.push(`- One rule, ${sellerName}: ${d.one_rule_each.seller}`);
+  out.push(`- One rule, ${buyerName}: ${d.one_rule_each.buyer}`, ``);
+  return out;
 }

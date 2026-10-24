@@ -7,7 +7,10 @@ import type { Action, Person, Session } from "./types";
  * written by its owner; a round's observer tools only by that round's observer.
  * Returns null when allowed, otherwise the reason for a 403.
  */
+const SERVER_ONLY = new Set<Action["type"]>(["ai.usage", "round.debrief", "practice.message", "practice.debrief"]);
+
 export function authorizeAction(a: Action, me: Person, s: Session): string | null {
+  if (SERVER_ONLY.has(a.type)) return "This action is written by the server";
   const own = (p: Person) => (p === me ? null : "You can only submit your own answers");
   const observerOf = (roundId: string) => {
     const r = s.rounds.find((x) => x.id === roundId);
@@ -24,6 +27,10 @@ export function authorizeAction(a: Action, me: Person, s: Session): string | nul
     case "mistakes.tick":
     case "rule.set":
     case "pattern.add":
+    case "practice.start":
+    case "practice.prep":
+    case "practice.submit":
+    case "practice.delete":
       return own(a.person);
     case "round.log":
     case "round.unlog":

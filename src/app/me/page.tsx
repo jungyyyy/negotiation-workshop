@@ -17,9 +17,10 @@ import { drillSetForStep } from "@/lib/drills";
 import { ExperimentReveal, ExperimentScreen } from "@/components/Experiment";
 import { DrillScreen } from "@/components/Drill";
 import { CrossCase, ExportCard, MistakesList, OverconfidenceReveal, RuleInput } from "@/components/Debrief";
+import { practiceSummary } from "@/lib/practiceSummary";
 
 export default function MePage() {
-  const { session, act, live } = useSession();
+  const { session, act, live, replace } = useSession();
   if (!session) return <Spinner />;
   const me = session.me;
 
@@ -60,7 +61,7 @@ export default function MePage() {
         ) : step.kind === "quiz" && sprint ? (
           <Quiz sprint={sprint} session={session} me={me} act={act} />
         ) : step.roundId ? (
-          <RoundScreen session={session} me={me} step={step} act={act} />
+          <RoundScreen session={session} me={me} step={step} act={act} onView={replace} />
         ) : card ? (
           <ConceptCardView card={card} />
         ) : experiment ? (
@@ -95,6 +96,32 @@ export default function MePage() {
             </p>
           </Card>
         )}
+
+        <Card>
+          <div className="flex items-baseline justify-between">
+            <Label>Practice rounds · {(session.practice[me] ?? []).length}</Label>
+            <Button variant="ghost" size="sm" href="/practice">
+              Practice →
+            </Button>
+          </div>
+          {(session.practice[me] ?? []).length === 0 ? (
+            <p className="text-sm text-muted mt-1">Negotiate against an AI counterpart any time. Scores appear here over time.</p>
+          ) : (
+            <ul className="mt-2 flex flex-col gap-1 text-sm">
+              {[...(session.practice[me] ?? [])]
+                .reverse()
+                .slice(0, 5)
+                .map((pr) => (
+                  <li key={pr.id} className="flex justify-between gap-3">
+                    <a href={`/practice/${pr.id}`} className="font-semibold underline-offset-4 hover:underline">
+                      {pr.scenarioId} as {pr.side}
+                    </a>
+                    <span className="text-muted text-right">{practiceSummary(pr)}</span>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </Card>
 
         <div className="flex gap-3 justify-center text-sm">
           <Button variant="ghost" size="sm" href="/">

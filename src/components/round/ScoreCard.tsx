@@ -8,12 +8,21 @@ import { Collapsible } from "./Sheet";
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const eur = (n: number) => `€${n.toLocaleString("en")}`;
 
-export function ScoreCard({ scenario, round }: { scenario: Scenario; round: Round }) {
+export function ScoreCard({
+  scenario,
+  round,
+  names,
+}: {
+  scenario: Scenario;
+  round: Pick<Round, "scores"> & Partial<Pick<Round, "roles">>;
+  /** Display names when there are no live roles (practice rounds). */
+  names?: { seller: string; buyer: string };
+}) {
   // Scores are computed on the server at reveal, from the confidential tables.
   const s = round.scores;
   if (!s) return null;
-  const sellerName = personName(round.roles.seller);
-  const buyerName = personName(round.roles.buyer);
+  const sellerName = names?.seller ?? (round.roles ? personName(round.roles.seller) : "Seller");
+  const buyerName = names?.buyer ?? (round.roles ? personName(round.roles.buyer) : "Buyer");
 
   if (s.kind === "single") {
     const width = s.buyerRv - s.sellerRv;

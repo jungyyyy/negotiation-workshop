@@ -63,6 +63,8 @@ export function newSession(demo = false): Session {
     mistakes: {},
     rules: {},
     patterns: [],
+    practice: {},
+    aiUsage: { calls: 0, inputTokens: 0, outputTokens: 0 },
     rounds: [],
   };
 }
@@ -75,6 +77,8 @@ function migrate(s: Session): Session {
   s.mistakes ??= {};
   s.rules ??= {};
   s.patterns ??= [];
+  s.practice ??= {};
+  s.aiUsage ??= { calls: 0, inputTokens: 0, outputTokens: 0 };
   s.rounds ??= [];
   s.joined ??= {};
   return s;
@@ -350,6 +354,76 @@ function reduce(prev: Session, a: Action): Session {
     }
     case "pattern.remove": {
       s.patterns = s.patterns.filter((p) => p.at !== a.at);
+      return s;
+    }
+    case "ai.usage": {
+      s.aiUsage.calls += 1;
+      s.aiUsage.inputTokens += a.inputTokens;
+      s.aiUsage.outputTokens += a.outputTokens;
+      return s;
+    }
+    case "round.debrief": {
+      const r = findRound(s, a.roundId);
+      if (!r) return s;
+      if (a.debrief) {
+        r.debrief = a.debrief;
+        r.debriefError = undefined;
+      } else r.debriefError = a.error ?? "Unknown error";
+      return s;
+    }
+    case "practice.start": {
+      const sc = getFullScenario(a.scenarioId);
+      if (!sc) return s;
+      const list = (s.practice[a.person] ??= []);
+      list.push({
+        id: `p${now.toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`,
+        scenarioId: a.scenarioId,
+        side: a.side,
+        status: sc.requiresPrep ? "prep" : "chatting",
+        messages: [],
+        createdAt: now,
+      });
+      return s;
+    }
+    case "practice.prep": {
+      const pr = s.practice[a.person]?.find((x) => x.id === a.id);
+      if (!pr || (pr.status !== "prep" && pr.status !== "chatting")) return s;
+      pr.prep = { ...a.answers, submittedAt: now };
+      if (pr.status === "prep") pr.status = "chatting";
+      return s;
+    }
+    case "practice.message": {
+      const pr = s.practice[a.person]?.find((x) => x.id === a.id);
+      if (!pr || pr.status !== "chatting") return s;
+      pr.startedAt ??= now;
+      pr.messages.push({ role: a.role, content: a.content, at: now });
+      return s;
+    }
+    case "practice.submit": {
+      const pr = s.practice[a.person]?.find((x) => x.id === a.id);
+      const sc = pr && getFullScenario(pr.scenarioId);
+      if (!pr || !sc || pr.status === "revealed") return s;
+      pr.deal = a.deal;
+      pr.noDeal = !!a.noDeal;
+      pr.submittedAt = now;
+      pr.startedAt ??= pr.messages[0]?.at ?? now;
+      pr.status = "revealed";
+      pr.revealedAt = now;
+      pr.scores = computeScores(sc, pr);
+      return s;
+    }
+    case "practice.debrief": {
+      const pr = s.practice[a.person]?.find((x) => x.id === a.id);
+      if (!pr) return s;
+      if (a.debrief) {
+        pr.debrief = a.debrief;
+        pr.debriefError = undefined;
+      } else pr.debriefError = a.error ?? "Unknown error";
+      return s;
+    }
+    case "practice.delete": {
+      const list = s.practice[a.person];
+      if (list) s.practice[a.person] = list.filter((x) => x.id !== a.id);
       return s;
     }
     case "reset": {
