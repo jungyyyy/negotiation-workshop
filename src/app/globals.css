@@ -1,0 +1,61 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f6f5f1;
+  --card: #ffffff;
+  --fg: #1a1a1a;
+  --muted: #6b6b66;
+  --line: #e2e0d8;
+  --accent: #1f5f3f;
+  --accent-fg: #ffffff;
+  --warn: #b4321f;
+  --soft: #eef2ee;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121311;
+    --card: #1c1e1a;
+    --fg: #f0efe9;
+    --muted: #9b9a92;
+    --line: #2d302a;
+    --accent: #4f9d75;
+    --accent-fg: #0d1a13;
+    --warn: #e2644f;
+    --soft: #1f2a22;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-warn: var(--warn);
+  --color-soft: var(--soft);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
