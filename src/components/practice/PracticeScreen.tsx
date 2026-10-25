@@ -11,6 +11,7 @@ import { DealForm, DealSummary } from "../round/DealForm";
 import { ScoreCard } from "../round/ScoreCard";
 import { Collapsible, Paragraphs, PointsTableView, RoleSheet } from "../round/Sheet";
 import { DebriefPanel } from "../DebriefPanel";
+import { sentenceBoundary, useSpeaker, useSpeechInput } from "@/lib/voice";
 
 const SOFT_LIMIT = 40;
 
@@ -180,17 +181,31 @@ function Chat({
   const [showDeal, setShowDeal] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
   const myName = personName(me);
+  const speaker = useSpeaker();
+  const pendingRef = useRef(false);
+  const mic = useSpeechInput((text) => void send(text));
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: "end" });
-  }, [pr.messages.length, pending?.ai]);
+  }, [pr.messages.length, pending?.ai, mic.interim]);
 
-  const send = async () => {
-    const text = draft.trim();
-    if (!text || pending) return;
+  const send = async (raw?: string) => {
+    const text = (raw ?? draft).trim();
+    if (!text || pendingRef.current) return;
+    pendingRef.current = true;
     setDraft("");
     setError(null);
     setPending({ user: text, ai: "" });
+    speaker.cancel();
+    let spokenUpTo = 0;
+    const speakNew = (acc: string, final: boolean) => {
+      const clean = acc.split("\n⚠ ")[0];
+      const end = final ? clean.length : sentenceBoundary(clean, spokenUpTo);
+      if (end > spokenUpTo) {
+        speaker.speak(clean.slice(spokenUpTo, end));
+        spokenUpTo = end;
+      }
+    };
     try {
       const r = await apiFetch("/api/ai/chat", {
         method: "POST",
@@ -211,15 +226,26 @@ function Chat({
         if (done) break;
         acc += dec.decode(value, { stream: true });
         setPending({ user: text, ai: acc });
+        speakNew(acc, false);
       }
+      speakNew(acc, true);
       const warn = acc.indexOf("\n⚠ ");
       if (warn >= 0) setError(acc.slice(warn + 3).trim());
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       // The server stored both turns; the next poll shows them. Clear the local echo shortly after.
-      setTimeout(() => setPending(null), 2200);
+      setTimeout(() => {
+        setPending(null);
+        pendingRef.current = false;
+      }, 2200);
     }
+  };
+
+  const holdStart = () => {
+    if (pending || mic.listening) return;
+    speaker.cancel();
+    mic.start();
   };
 
   // While a reply streams, the polled state catches up in two steps: first the user's
@@ -267,6 +293,12 @@ function Chat({
           <div ref={bottom} />
         </ul>
         {error ? <p className="text-sm text-warn font-semibold">⚠ {error}</p> : null}
+        {mic.error ? <p className="text-sm text-warn font-semibold">⚠ {mic.error}</p> : null}
+        {mic.listening ? (
+          <p className="text-sm text-muted italic min-h-5" aria-live="polite">
+            {mic.interim || "Listening… release to send"}
+          </p>
+        ) : null}
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -274,17 +306,62 @@ function Chat({
             void send();
           }}
         >
+          {mic.supported ? (
+            <button
+              type="button"
+              aria-label={mic.listening ? "Release to send" : "Hold to talk"}
+              aria-pressed={mic.listening}
+              disabled={!!pending}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                (e.currentTarget as HTMLButtonElement).setPointerCapture(e.pointerId);
+                holdStart();
+              }}
+              onPointerUp={() => mic.stop()}
+              onPointerCancel={() => mic.stop()}
+              onKeyDown={(e) => {
+                if ((e.key === " " || e.key === "Enter") && !e.repeat) {
+                  e.preventDefault();
+                  holdStart();
+                }
+              }}
+              onKeyUp={(e) => {
+                if (e.key === " " || e.key === "Enter") mic.stop();
+              }}
+              onContextMenu={(e) => e.preventDefault()}
+              className={`min-h-12 min-w-12 shrink-0 select-none rounded-xl border px-3 text-xl touch-none ${
+                mic.listening ? "border-warn bg-warn/15 text-warn animate-pulse" : "border-line bg-bg"
+              } disabled:opacity-50`}
+            >
+              🎙
+            </button>
+          ) : null}
           <input
-            value={draft}
+            value={mic.listening ? mic.interim : draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={pending ? "Waiting for the reply…" : "Say something…"}
-            disabled={!!pending}
+            placeholder={pending ? "Waiting for the reply…" : mic.supported ? "Hold the mic and talk, or type…" : "Say something…"}
+            disabled={!!pending || mic.listening}
             className="flex-1 min-h-12 rounded-xl border border-line bg-bg px-3"
           />
-          <Button type="submit" variant="primary" disabled={!draft.trim() || !!pending}>
+          <Button type="submit" variant="primary" disabled={!draft.trim() || !!pending || mic.listening}>
             Send
           </Button>
         </form>
+        {speaker.supported ? (
+          <div className="flex items-center justify-between text-xs text-muted">
+            <span>{speaker.muted ? `${aiName} is muted` : speaker.speaking ? `${aiName} is speaking…` : `${aiName} speaks replies aloud`}</span>
+            <div className="flex gap-2">
+              {speaker.speaking ? (
+                <button type="button" onClick={speaker.cancel} className="underline">
+                  Stop
+                </button>
+              ) : null}
+              <button type="button" onClick={() => speaker.setMuted(!speaker.muted)} className="underline">
+                {speaker.muted ? "Unmute" : "Mute"}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </Card>
 
       {!showDeal ? (

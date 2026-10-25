@@ -65,6 +65,26 @@ limits and rejected keys show their own messages.
 Error path: without the key, sending a message shows a red error under the
 chat; mid-stream failures appear as a "⚠ …" line.
 
+### Voice mode (browser-native, no extra services)
+
+- **Hold to talk.** Press and hold the 🎙 button (mouse, touch, or hold
+  Space/Enter when it has focus). The input shows what is being heard;
+  release to send. Needs the browser's speech recognition (Chrome, Edge,
+  Safari; not Firefox) and microphone permission — the first press asks for
+  it. If the mic is blocked, a red message says so and typing still works.
+  The button is hidden entirely where recognition is unsupported.
+- **Spoken replies.** The counterpart's reply is read aloud sentence by
+  sentence as it streams, using the browser's own voices. **Mute**/**Unmute**
+  under the input is remembered per browser; **Stop** cuts the current
+  speech. Holding the mic also stops speech so you can interrupt.
+- Recognition language is fixed to en-US; the workshop runs in English.
+- Nothing about voice is stored or sent anywhere: the transcript the server
+  sees is the recognised text, same as a typed message.
+
+Quick check: type a message, confirm the reply is spoken and the status line
+says "… is speaking…"; press Mute, send another, confirm silence; hold 🎙,
+say a sentence, release, confirm it was sent as text.
+
 ## Choices I made (not specified in the prompt)
 
 - **Counterpart targets.** "Accept quickly if the offer beats the target"
@@ -87,6 +107,11 @@ chat; mid-stream failures appear as a "⚠ …" line.
   rather not.
 - **Effort.** Chat replies use `effort: "low"` (fast, conversational);
   the debrief uses the model default.
+- **Voice via the Web Speech API.** Dictation and spoken replies use the
+  browser's built-in speech recognition and `speechSynthesis` rather than a
+  hosted speech service, so there is no new key, cost or latency. Voices
+  sound synthetic; a hosted TTS/STT provider can replace the two hooks in
+  `src/lib/voice.ts` later without touching the chat flow.
 - **Soft limit.** 40 messages counts both sides. The closing push is a system
   instruction appended from message 40 on.
 - **Mistakes list.** AI rubric zeros count like observer zeros, tagged "AI",
