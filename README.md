@@ -99,10 +99,26 @@ environment in server code and never sent to the browser.
    Vercel domain must be in that list alongside the other app's domain; do not
    replace the other app's entries. **Site URL** can stay as the other app's
    domain, since this app passes its own redirect URL when sending the link.
-3. Optional, recommended: **Authentication → Email Templates → Magic Link**:
-   leave the default `{{ .ConfirmationURL }}` link. The callback route accepts
-   both the default PKCE link (`?code=`) and the token-hash form
-   (`/auth/callback?token_hash={{ .TokenHash }}&type=email`).
+3. **Required: Authentication → Email Templates → Magic Link.** Replace the
+   default `{{ .ConfirmationURL }}` link with a token-hash link. The default
+   link uses PKCE, which only works in the browser that requested the link
+   (the secret lives in that browser's cookies), so tapping it from a mail
+   app, another browser or another device fails with "PKCE code verifier not
+   found in storage". The token-hash link carries everything it needs and
+   works from any device. Paste this as the template body:
+
+   ```html
+   <h2>Myda Negotiation Workshop</h2>
+   <p>Tap the link below to sign in. It is valid for one hour and works once.</p>
+   <p><a href="https://negotiation-workshop.vercel.app/auth/callback?token_hash={{ .TokenHash }}&type=email">Sign in to the workshop</a></p>
+   <p>If you did not ask for this, ignore this email.</p>
+   ```
+
+   The host is written out rather than `{{ .SiteURL }}` because the project
+   is shared with another app whose domain is the Site URL. For local
+   testing, temporarily point the link at `http://localhost:3000`. Save the
+   template; no redeploy is needed. The callback accepts both link styles, so
+   links sent before the change still work in the original browser.
 4. The allowlist is enforced in the app, not in Supabase: the route that sends
    the link refuses any address not in `ALLOWED_EMAILS`, and every API route
    that reads or writes state checks the signed-in email against the same list.
@@ -155,6 +171,10 @@ readable.
 - **"Invalid API key"**: the anon or service_role key is wrong or swapped.
 - **"relation … does not exist"** in the table check: run the SQL above, or
   set `SUPABASE_TABLE` to the table you created.
+- **"PKCE code verifier not found in storage"** after clicking the link: the
+  link was opened in a different browser or device than the one that asked
+  for it. Switch the Magic Link email template to the token-hash link
+  (step 3 above). Until then, open the link in the same browser.
 - **No email arrives**: the address is not in `ALLOWED_EMAILS` (the app then
   says "This workshop is private"), or the Email provider is disabled in
   Supabase, or the redirect URL is not in the allowed list.
